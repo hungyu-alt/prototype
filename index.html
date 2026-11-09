@@ -963,11 +963,7 @@ function dialogHTML(){
     case 'unlock': return simple('解除鎖定？','解除後，所有人都可以再修改品項。準備好後，再次前往付款會重新鎖定。',`<button class="btn btn-l btn-primary" data-act="doUnlock">解除鎖定</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">取消</button>`);
     case 'unlockPast': return simple('已過截止時間','團員目前無法修改品項。要延長截止時間，讓大家繼續點餐嗎？',`<button class="btn btn-l btn-primary" data-act="unlockEdit">修改截止時間</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">不修改</button>`);
     case 'menuChanged': return simple('儲存後會清空購物車','新的取餐方式或時間對應的菜單不同，儲存後全團的購物車都會清空，需要大家重新點餐。',`<button class="btn btn-l btn-primary" data-act="saveEditConfirmed">儲存並清空</button>`,`<button class="btn btn-l btn-outline" data-act="cancelMenuChange">取消</button>`);
-    case 'exitFail': return simple('通知','後端錯誤訊息（錯誤代碼）',`<button class="btn btn-l btn-primary" data-act="exitFailOk">確認</button>`);
     case 'stockOut': return simple('品項已自動移除',`以下品項因庫存不足或停售，系統已自動從揪團購物車中移除。<div class="so-list">${S.dlg.rows.map(r=>`<div><b>${esc(r.who)}</b><span>${esc(r.items)}</span></div>`).join('')}</div>`,`<button class="btn btn-l btn-primary" data-act="stockPick">選擇其他品項</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">確認</button>`);
-    case 'unlockFail': return simple('通知','後端錯誤訊息（錯誤代碼）',`<button class="btn btn-l btn-primary" data-act="closeDialog">確認</button>`);
-    case 'cancelFail': return simple('通知','後端錯誤訊息（錯誤代碼）',`<button class="btn btn-l btn-primary" data-act="closeDialog">確認</button>`);
-    case 'joinFail': return simple('通知','後端錯誤訊息（錯誤代碼）',`<button class="btn btn-l btn-primary" data-act="joinFailOk">確認</button>`);
     case 'pickupInvalid': return simple('取餐方式與時間需要重新設定', '店家調整了營業設定，原本的取餐方式或時間目前無法使用。'+(isLeader()?'請重新設定，團員才能繼續點餐。':'請通知團長重新設定，完成後即可繼續點餐。'), isLeader()?`<button class="btn btn-l btn-primary" data-act="openEditFromDlg">調整取餐方式與時間</button>`:`<button class="btn btn-l btn-primary" data-act="closeDialog">我知道了</button>`, isLeader()?`<button class="btn btn-l btn-outline" data-act="closeDialog">稍後再說</button>`:undefined);
     case 'syncLocked': return simple('團長正在結帳','團購剛剛被鎖定，暫時無法修改品項。若需調整，請與團長聯繫。',`<button class="btn btn-l btn-primary" data-act="closeDialog">我知道了</button>`) ;
     case 'cleared': return simple('購物車已清空',`團長更改了取餐方式與時間，菜單內容不同，你的購物車已清空，請重新點餐。<div class="t-desc c-var" style="margin-top:8px">新的取餐：${esc(pkText(S.group,true).replace('：',' '))}</div>`,`<button class="btn btn-l btn-primary" data-act="closeDialog">重新點餐</button>`);
@@ -1240,10 +1236,6 @@ function renderControls(){
   h+=`<div class="ctl"><div class="ctl-label">從團購連結進入</div>
     <button class="ui-btn" data-act="linkValid" data-v="guest">連結有效 → 身份設定（未登入）</button>
     <button class="ui-btn" data-act="linkValid" data-v="member">連結有效 → 身份設定（已登入會員）</button>
-    <button class="ui-btn" data-act="simCancelFail">模擬取消團購失敗（顯示後端錯誤）</button>
-    <button class="ui-btn" data-act="simUnlockFail">模擬解除鎖定失敗（顯示後端錯誤）</button>
-    <button class="ui-btn" data-act="simExitFail">模擬退出失敗（顯示後端錯誤）</button>
-    <button class="ui-btn" data-act="simJoinFail">模擬加入失敗（顯示後端錯誤）</button>
     <button class="ui-btn" data-act="linkNoName">連結有效 → 身份設定（已登入、會員沒有姓名）</button>
     <button class="ui-btn" data-act="linkClosed">團購已截止</button>
     <button class="ui-btn" data-act="linkLocked">團購正在結帳中（已鎖定）</button>
@@ -1422,12 +1414,12 @@ const A = {
   saveEdit(){ if(S.menuChanged && (S.sh.pickupTouched)){ S.dialog='menuChanged'; return; } commitEdit(false); },
   saveEditConfirmed(){ if(S.sheet==='edit') commitGeneral(true); else commitEdit(true); },
   askCancelGroup(){ S.dialog='cancelGroup'; },
-  doCancelGroup(){ if(S.simCancelFail){ S.simCancelFail=false; S.dialog='cancelFail'; render(); return; } S.sheet=null; S.dialog=null; S.role='member'; S.carts=seedCarts(); S.group=defaultGroup(); S.status='open'; go('store'); toast('已取消團購'); },
+  doCancelGroup(){ S.sheet=null; S.dialog=null; S.role='member'; S.carts=seedCarts(); S.group=defaultGroup(); S.status='open'; go('store'); toast('已取消團購'); },
   openShare(){ S.dialog='share'; },
   copyLink(){ S.dialog=null; toast('已複製團購連結'); },
   openInfo(){ if(guardSync()) return; S.dialog='info'; },
   askExit(){ S.dialog='exit'; },
-  doExit(){ if(S.simExitFail){ S.simExitFail=false; S.dialog='exitFail'; render(); return; } S.dialog=null; S.role='member'; go('store'); toast('已退出團購'); },
+  doExit(){ S.dialog=null; S.role='member'; go('store'); toast('已退出團購'); },
   goCart(){ if(guardSync()) return; go('cart'); },
   goStore(){ go('store'); },
   goStep2(){ S.status = isPast()?'lockedPast':'locked'; go('step2'); toast('已鎖定團購，團員暫時無法修改品項'); },
@@ -1441,7 +1433,7 @@ const A = {
   askRemove(el){ S.dlg={id:el.dataset.id}; S.dialog='remove'; },
   doRemove(){ const c=S.carts[S.dlg.id]; delete S.carts[S.dlg.id]; S.dialog=null; toast(`已將${c.name}移出團購`); },
   askUnlock(){ S.dialog='unlock'; },
-  doUnlock(){ if(S.simUnlockFail){ S.simUnlockFail=false; S.dialog='unlockFail'; render(); return; } if(S.status==='lockedPast'){ S.status='closed'; S.dialog='unlockPast'; } else { S.status='open'; S.dialog=null; toast('已解除鎖定'); } },
+  doUnlock(){ if(S.status==='lockedPast'){ S.status='closed'; S.dialog='unlockPast'; } else { S.status='open'; S.dialog=null; toast('已解除鎖定'); } },
   unlockEdit(){ S.dialog=null; openForm('edit','deadline'); },
   inc(el){
     if(guardSync()) return;
@@ -1468,13 +1460,7 @@ const A = {
     S.role = el.dataset.v==='member' ? 'member' : 'guest'; S.status='open'; S.sheet=null;
     S.dlg={loggedIn:S.role==='member',who:'visitor',vname:''}; S.dialog='identity'; go('store');
   },
-  exitFailOk(){ S.dialog='info'; render(); },
-  simExitFail(){ S.simExitFail=true; toast('（模擬）下一次按「退出團購」會失敗'); },
   cancelMenuChange(){ /* 規格：取消 → 留在原視窗，不儲存，設定值還原 */ const f=S.sh.form, g=S.group; Object.assign(f,{type:g.type,date:g.date,time:g.time}); S.sh.pickupTouched=false; S.dialog=null; render(); },
-  simUnlockFail(){ S.simUnlockFail=true; toast('（模擬）下一次按「解除鎖定」會失敗'); },
-  simCancelFail(){ S.simCancelFail=true; toast('（模擬）下一次按「取消團購」會失敗'); },
-  joinFailOk(){ S.dlg=S.dlgBack; S.dialog='identity'; render(); },
-  simJoinFail(){ S.simJoinFail=true; A.linkValid({dataset:{v:'member'}}); toast('（模擬）下一次按「開始訂購」會加入失敗'); },
   linkNoName(){ S.role='member'; S.status='open'; S.sheet=null; S.carts.mei.name='小美'; S.dlg={loggedIn:true,noName:true,who:'visitor',vname:'',mname:''}; S.dialog='identity'; go('store'); },
   createNoName(){ S.role='member'; S.noName=true; S.dialog=null; go('store'); openForm('create'); },
   linkClosed(){ S.dlg={locked:false}; S.dialog='linkClosed'; },
@@ -1485,7 +1471,6 @@ const A = {
   backToMyGroup(){ S.dialog=null; go('store'); },
   pickWho(el){ S.dlg.who=el.dataset.v; if(S.dlg.who==='visitor') S._focus='vname'; },
   joinGroup(){
-    if(S.simJoinFail && !(!S.dlg.loggedIn && S.dlg.who==='member')){ S.simJoinFail=false; S.dlgBack=S.dlg; S.dialog='joinFail'; render(); return; }
     if(!S.dlg.loggedIn && S.dlg.who==='member'){ toast('（原型）前往登入，完成後回到店家頁（參加團購模式）'); S.dlg.loggedIn=true; return; }
     if(S.dlg.loggedIn){ S.role='gm'; if(S.dlg.noName) S.carts.mei.name=S.dlg.mname.trim(); } else { S.role='gv'; S.carts.zhe = S.carts.zhe||{id:'zhe',visitor:true,joined:4,items:[]}; S.carts.zhe.name=S.dlg.vname.trim(); }
     S.status='open'; S.dialog=null; go('store'); toast('已加入團購');
