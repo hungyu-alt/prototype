@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>愛點餐｜揪團原型 v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* ============ 原型外框（非產品 UI，可隨系統深淺色） ============ */
+:root{
+  --ui-bg:#E9EAEC; --ui-panel:#FFFFFF; --ui-fg:#272727; --ui-sub:#666666; --ui-line:#D9D9D9;
+  --ui-accent:#10689E; --ui-chip:#F3F3F3; --ui-chip-on:#272727; --ui-chip-on-fg:#FFFFFF;
+  --ui-q:#8C641D; --ui-q-bg:#FFF2DB; --ui-tmp:#0D507A; --ui-tmp-bg:#E8F4FC; --ui-spec:#386524; --ui-spec-bg:#F0F8EC;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ui-bg:#1B1C1E; --ui-panel:#26282B; --ui-fg:#EDEDED; --ui-sub:#A8A8A8; --ui-line:#3A3C40;
+    --ui-accent:#64BBE9; --ui-chip:#33363A; --ui-chip-on:#EDEDED; --ui-chip-on-fg:#1B1C1E;
+    --ui-q:#FFCD77; --ui-q-bg:#3A3020; --ui-tmp:#94CDF0; --ui-tmp-bg:#1E3240; --ui-spec:#B8DEA8; --ui-spec-bg:#22321C;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ui-bg:#1B1C1E; --ui-panel:#26282B; --ui-fg:#EDEDED; --ui-sub:#A8A8A8; --ui-line:#3A3C40;
+  --ui-accent:#64BBE9; --ui-chip:#33363A; --ui-chip-on:#EDEDED; --ui-chip-on-fg:#1B1C1E;
+  --ui-q:#FFCD77; --ui-q-bg:#3A3020; --ui-tmp:#94CDF0; --ui-tmp-bg:#1E3240; --ui-spec:#B8DEA8; --ui-spec-bg:#22321C;
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ui-bg);color:var(--ui-fg);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;color:inherit}
+.layout{display:grid;grid-template-columns:300px 375px minmax(300px,1fr);gap:24px;padding:24px;align-items:start;max-width:1440px;margin:0 auto}
+.panel{background:var(--ui-panel);border-radius:12px;padding:16px;position:sticky;top:24px;max-height:calc(100vh - 48px);overflow:auto}
+.panel h2{font-size:16px;line-height:20px;margin:0 0 4px;font-weight:700}
+.panel .sub{font-size:12px;line-height:16px;color:var(--ui-sub);margin:0 0 16px}
+.ctl{margin-bottom:16px}
+.ctl-label{font-size:12px;line-height:16px;color:var(--ui-sub);margin-bottom:6px;font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:0;background:var(--ui-chip);color:var(--ui-fg);border-radius:6px;padding:6px 10px;font-size:13px;line-height:16px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ui-chip-on);color:var(--ui-chip-on-fg)}
+.chip:focus-visible,.ui-btn:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px}
+.ui-btn{display:block;width:100%;text-align:left;border:1px solid var(--ui-line);background:transparent;color:var(--ui-fg);border-radius:6px;padding:8px 10px;font-size:13px;line-height:16px;cursor:pointer;margin-bottom:6px}
+.ui-btn:hover{border-color:var(--ui-fg)}
+.ui-row{display:flex;align-items:center;gap:8px;font-size:13px}
+.ui-row input{accent-color:var(--ui-accent)}
+.notes-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.legend{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.tagk{font-size:11px;line-height:16px;padding:0 6px;border-radius:4px;font-weight:700;white-space:nowrap}
+.k-spec{background:var(--ui-spec-bg);color:var(--ui-spec)}
+.k-q{background:var(--ui-q-bg);color:var(--ui-q)}
+.k-tmp{background:var(--ui-tmp-bg);color:var(--ui-tmp)}
+.note{display:grid;grid-template-columns:auto 1fr;gap:8px;padding:10px 0;border-top:1px solid var(--ui-line);font-size:13px;line-height:20px}
+.note b{font-weight:700}
+.note .ref{font-size:12px;color:var(--ui-sub);display:block}
+.note.flash{animation:flash 1.2s ease}
+@keyframes flash{0%,40%{background:var(--ui-q-bg)}100%{background:transparent}}
+@media (prefers-reduced-motion:reduce){.note.flash{animation:none;background:var(--ui-q-bg)}}
+.screen-name{font-size:12px;color:var(--ui-sub);text-align:center;margin:0 0 8px}
+@media (max-width:1100px){
+  .layout{grid-template-columns:1fr;max-width:420px;padding:12px}
+  .panel{position:static;max-height:none}
+  .phone-col{order:-1}
+}
+
+/* ============ 產品 UI：Design System tokens（引用 02-tokens.md） ============ */
+.phone{
+  --primary:#F14F47; --primary_hover:#DB4841; --primary_pressed:#AB3832; --on_primary:#FFF4F4;
+  --primary-container:#FFF4F4; --primary-container_hover:#FEEDED; --primary-container_pressed:#FFE0DF;
+  --primary-fixed-dim:#F9AEAA; --primary-fixed-dim_hover:#F68984; --on_primary-fixed-dim:#540C09;
+  --secondary:#FFB534; --secondary_pressed:#B58125; --on_secondary:#563804;
+  --secondary-container:#FFF8EB; --secondary-fixed-variant:#FFE8C0; --on_secondary-container:#8C641D; --secondary-fixed-dim:#FFDDA2; --on_secondary-fixed-dim:#563804;
+  --tertiary:#F3F3F3; --tertiary_hover:#E9E9E9; --tertiary_pressed:#E0E0E0; --on_tertiary:#424242;
+  --background:#F7F7F7; --surface:#FFFFFF; --surface-low:#F7F7F7; --surface-lower:#EDEDED; --surface-lowest:#E0E0E0;
+  --on_surface:#333333; --on_surface-variant:#757575; --on_surface-variant-bright:#999999;
+  --inverse-surface:#333333; --inverse-on-surface:#F7F7F7;
+  --divider:#E9E9E9; --outline:#C2C2C2; --outline-variant:#E0E0E0; --outline-variant-bright:#EDEDED;
+  --disabled:#E0E0E0; --on_disabled:#999999;
+  --error:#AB3832; --on_error:#FFFFFF;
+  --warning:#B58125; --warning-container:#FFE8C0; --on_warning-container:#563804;
+  --success:#65B741; --success-container:#F0F8EC;
+  --link:#1792DE;
+  color-scheme:light;
+  width:375px;height:812px;border-radius:28px;background:var(--surface);color:var(--on_surface);
+  position:relative;overflow:hidden;box-shadow:0 0 0 8px #1D1D1F, 0 20px 40px rgba(0,0,0,.25);margin:8px auto 24px;
+}
+@media (max-width:420px){.phone{width:100%;max-width:375px;border-radius:0;box-shadow:none;margin:0 auto 16px;height:780px}}
+/* ============ 手機全螢幕展示模式（≤500px）：只顯示產品畫面；長按左上角開啟控制面板 ============ */
+#mBar,#mScrim{display:none}
+@media (max-width:500px){
+  body{background:#FFFFFF}
+  .layout{display:block;padding:0;max-width:none;margin:0}
+  .screen-name{display:none}
+  .phone{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  .phone input,.phone textarea{-webkit-user-select:text;user-select:text}
+  .phone{width:100%;max-width:none;height:100vh;height:100dvh;border-radius:0;box-shadow:none;margin:0}
+  .panel{display:none;position:fixed;left:0;right:0;bottom:0;top:auto;height:78vh;height:78dvh;max-height:none;overflow-y:auto;z-index:1001;border-radius:16px 16px 0 0;padding:64px 16px calc(24px + env(safe-area-inset-bottom,0px));box-sizing:border-box;box-shadow:0 -4px 24px rgba(0,0,0,.2)}
+  body.m-open #ctlPanel{display:block}
+  body.m-open.m-notes #ctlPanel{display:none}
+  body.m-open.m-notes #notePanel{display:block}
+  body.m-open #mScrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000}
+  body.m-open #mBar{display:flex;position:fixed;left:0;right:0;bottom:calc(78dvh - 56px);height:56px;z-index:1002;align-items:center;gap:8px;padding:0 12px 0 16px;background:var(--ui-panel);border-radius:16px 16px 0 0;border-bottom:1px solid var(--ui-line)}
+  #mBar .m-tab{border:0;background:none;color:var(--ui-sub);font-size:15px;font-weight:700;padding:8px 4px;cursor:pointer}
+  #mBar .m-tab[aria-selected="true"]{color:var(--ui-fg);box-shadow:inset 0 -2px 0 var(--ui-fg)}
+  #mBar .m-x{margin-left:auto;border:0;background:var(--ui-chip);color:var(--ui-fg);border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer}
+}
+.scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding-bottom:96px;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+
+/* Typography（03-typography.md；Label/Large letter-spacing 依 Figma 實測 4% = 0.64px） */
+.t-h3{font-size:24px;line-height:28px;font-weight:500}
+.t-h4{font-size:20px;line-height:24px;font-weight:500}
+.t-h5{font-size:16px;line-height:20px;font-weight:500}
+.t-body-l{font-size:16px;line-height:20px;font-weight:400}
+.t-body-m{font-size:14px;line-height:20px;font-weight:400}
+.t-body-p{font-size:14px;line-height:20px;font-weight:700}
+.t-label-xl{font-size:18px;line-height:20px;font-weight:500}
+.t-label-l{font-size:16px;line-height:20px;font-weight:500;letter-spacing:.64px}
+.t-label-m{font-size:14px;line-height:20px;font-weight:500}
+.t-label-me{font-size:14px;line-height:20px;font-weight:700}
+.t-label-s{font-size:12px;line-height:16px;font-weight:500}
+.t-desc{font-size:12px;line-height:16px;font-weight:400}
+.t-desc-p{font-size:12px;line-height:16px;font-weight:500}
+.c-var{color:var(--on_surface-variant)}
+.c-bright{color:var(--on_surface-variant-bright)}
+.c-primary{color:var(--primary)}
+.c-err{color:var(--primary_pressed)}
+
+/* Button（button.md） */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;border:0;cursor:pointer;white-space:nowrap;text-decoration:none;font-family:inherit}
+.btn:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+.btn-l{height:44px;padding:12px 16px;border-radius:8px;font-size:16px;line-height:20px;font-weight:500;letter-spacing:.64px}
+.btn-m{height:36px;padding:8px 16px;border-radius:8px;font-size:14px;line-height:20px;font-weight:500}
+.btn-s{height:32px;padding:8px 12px;border-radius:4px;font-size:12px;line-height:16px;font-weight:500}
+.btn-block{width:100%}
+.btn-primary{background:var(--primary);color:var(--on_primary)}
+.btn-primary:hover{background:var(--primary_hover)}.btn-primary:active{background:var(--primary_pressed)}
+.btn-outline{background:var(--surface);color:var(--on_surface);box-shadow:inset 0 0 0 1px var(--on_surface)}
+.btn-outline:hover{background:var(--tertiary_hover)}.btn-outline:active{background:var(--tertiary_pressed)}
+.btn-outline-primary{background:var(--surface);color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary)}
+.btn-outline-primary:hover{background:var(--primary-container_hover)}.btn-outline-primary:active{background:var(--primary-container_pressed)}
+.btn-soft-primary{background:var(--primary-fixed-dim);color:var(--on_primary-fixed-dim)}
+.btn-soft-primary:hover{background:var(--primary-fixed-dim_hover)}
+.btn-secondary{background:var(--secondary);color:var(--on_secondary)}
+.btn-text-primary{background:none;color:var(--primary);padding:8px 0;font-size:14px;line-height:20px;font-weight:500}
+.btn-text-underline{background:none;color:var(--on_surface);text-decoration:underline;padding:0;font-size:14px;line-height:20px}
+.btn[disabled],.btn.is-disabled{background:var(--disabled)!important;color:var(--on_disabled)!important;box-shadow:none!important;cursor:not-allowed}
+.btn-text-primary[disabled],.btn-text-underline[disabled]{background:none!important}
+
+/* Counter（暫定：取自 B-1 店家頁 Card/item 的 Counter，尚未入 DS 文件） */
+.ctr{display:flex;align-items:center;gap:4px}
+/* 可點的圓形按鈕一律白底（HungYu 指定）：白底＋淡框＋陰影，＋號用 primary 色 */
+.ctr-btn{width:32px;height:32px;border-radius:16px;border:0;display:grid;place-items:center;cursor:pointer;background:var(--surface);color:var(--on_surface);box-shadow:inset 0 0 0 1px var(--outline-variant-bright),0 2px 5px rgba(66,66,66,.1)}
+.ctr-btn.add{background:var(--surface);color:var(--primary)}
+.ctr-btn.add-primary{background:var(--primary);color:var(--on_primary);box-shadow:none}
+.ctr-btn[disabled]{background:var(--disabled);color:var(--on_disabled);cursor:not-allowed}
+.ctr-qty{width:24px;text-align:center;font-size:14px;line-height:20px;font-weight:500;color:var(--primary)}
+.ctr-qty.dis{color:var(--on_disabled)}
+.plus-fab{width:32px;height:32px;border-radius:20px;background:var(--surface);border:1px solid var(--outline-variant-bright);display:grid;place-items:center;filter:drop-shadow(0 2px 5px rgba(66,66,66,.1));cursor:pointer;color:var(--on_surface)}
+
+/* Input（input.md） */
+.field{display:flex;flex-direction:column;gap:4px}
+.field-label{font-size:14px;line-height:20px;color:var(--on_surface)}
+.input{height:48px;border:2px solid var(--outline-variant);border-radius:8px;padding:12px;font-size:16px;line-height:20px;font-family:inherit;color:var(--on_surface);background:var(--surface);width:100%}
+.input::placeholder{color:var(--on_surface-variant-bright)}
+.input:focus{outline:0;border-color:var(--on_surface)}
+.input.err{border-color:var(--primary_pressed)}
+.field-help{font-size:12px;line-height:16px;color:var(--on_surface-variant)}
+.field-err{font-size:12px;line-height:16px;color:var(--primary_pressed)}
+
+/* Radio（radio.md） */
+.radio-row{display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer;font-size:16px;line-height:20px}
+.radio{width:24px;height:24px;display:grid;place-items:center;flex:none}
+.radio i{width:20px;height:20px;border-radius:50%;background:var(--surface);box-shadow:inset 0 0 0 2px var(--outline-variant);display:grid;place-items:center}
+.radio.on i{background:var(--primary);box-shadow:none}
+.radio.on i::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--surface)}
+
+/* Checkbox（checkbox.md） */
+.cb{width:24px;height:24px;display:grid;place-items:center;flex:none}
+.cb i{width:20px;height:20px;border-radius:6px;box-shadow:inset 0 0 0 2px var(--outline-variant);background:var(--surface)}
+.cb.on i{box-shadow:none;background:var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12l4 4 8-8' fill='none' stroke='%23FFF4F4' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat}
+
+/* Tag（暫定：未入 DS；外觀參照揪團示意圖「自己」標籤） */
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:4px;font-size:12px;line-height:16px;font-weight:500;background:var(--surface-lower);color:var(--on_surface-variant);white-space:nowrap}
+.tag-group{background:var(--secondary-fixed-variant);color:var(--on_secondary-container)}
+.tag-lead{background:var(--secondary-fixed-variant);color:var(--on_secondary)}
+
+/* Notice（暫定：狀態提示條，色彩借用 warning container） */
+.notice{display:flex;gap:8px;align-items:flex-start;background:var(--warning-container);color:var(--on_warning-container);border-radius:12px;padding:12px}
+.notice svg{flex:none;margin-top:0}
+.notice .n-body{flex:1;font-size:14px;line-height:20px}
+.notice .n-title{font-weight:700}
+.notice.lock{background:var(--surface-lower);color:var(--on_surface)}
+
+/* 店家頁 */
+.navbar{height:56px;display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--surface);position:sticky;top:0;z-index:5}
+.logo{display:flex;align-items:center;gap:4px}
+.logo-mark{width:28px;height:28px;border-radius:8px;background:var(--primary);display:grid;place-items:center;color:var(--surface);font-size:13px;font-weight:700}
+.nav-icons{display:flex;gap:18px;color:var(--on_surface)}
+.hero{height:211px;background:linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,0)),url(img/store-hero.jpg) center/cover no-repeat;position:relative}
+.hero-emoji{position:absolute;left:24px;bottom:28px;font-size:72px;opacity:.9}
+.hero-icons{position:absolute;top:20px;right:16px;display:flex;gap:12px}
+.round-ic{width:32px;height:32px;border-radius:16px;background:rgba(255,255,255,.92);display:grid;place-items:center;color:var(--on_surface)}
+.store-logo{position:absolute;right:16px;bottom:16px;width:64px;height:64px;border-radius:12px;overflow:hidden;background:var(--surface);box-shadow:0 2px 10px rgba(66,66,66,.1);display:grid;place-items:center;font-size:36px}
+.store-info{padding:16px 16px 0;display:flex;flex-direction:column;gap:16px}
+/* 方案 D（依 HungYu 調整後的群組結構，流程稿 01）：
+   一列兩欄、間距 16 → 左欄（寬 251）＝店名（最大寬 243、過長折行）＋資訊列，上下間距 8；右欄＝揪團按鈕，靠右距邊 16px、頂端對齊 */
+.store-head{display:flex;flex-direction:row;align-items:flex-start;gap:16px}
+.store-title-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.store-head.with-btn .store-title-col{max-width:251px}
+.store-name{word-break:break-all}
+.store-head.with-btn .store-name{max-width:243px}
+.store-head .meta{flex-wrap:nowrap;white-space:nowrap}
+.store-head .meta>*{flex:none}
+.store-head-btn{flex:none;margin-left:auto;position:relative}
+.store-head-btn .qb{position:absolute;top:-9px;right:-6px;margin:0}
+.meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--on_surface-variant);font-size:14px;line-height:20px}
+.dot{width:4px;height:4px;border-radius:2px;background:var(--on_surface-variant-bright)}
+.segmented{display:flex;padding:4px;border-radius:10px;background:var(--surface-lower);height:44px}
+.segmented span{flex:1;display:grid;place-items:center;border-radius:8px;font-size:14px;line-height:20px;color:var(--on_surface-variant);cursor:pointer}
+.segmented span.on{background:var(--surface);color:var(--on_surface);font-weight:500}
+.pickup{border:1px solid var(--outline-variant);border-radius:12px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;min-height:52px}
+.pickup.readonly{background:var(--surface-low);border-color:var(--outline-variant-bright)}
+.reminder-title{display:flex;gap:8px;align-items:center;color:var(--secondary_pressed);font-size:14px;line-height:20px;font-weight:500}
+.coupon{background:var(--secondary-container);border:1px solid var(--secondary-fixed-variant);border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center}
+/* 購物車頁的團購資訊（與店家頁 A-2 卡片同色系：白底＋outline-variant 外框＋黃色團購標籤） */
+.group-card{border:1px solid var(--outline-variant);background:var(--surface);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.group-card .g-top{display:flex;align-items:flex-start;gap:8px}
+.group-card .g-name{flex:1;word-break:break-all}
+.g-meta{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:14px;line-height:20px;color:var(--on_surface)}
+.g-meta span{display:inline-flex;align-items:center;gap:4px}
+.g-actions{display:flex;gap:8px}
+/* 團購資訊卡（店家頁）— 選用設計稿「卡片 A-2」：白底細框，資訊＋取餐在上，底部兩顆等寬 Outline Medium 按鈕 */
+.gcard{border-radius:12px;box-shadow:inset 0 0 0 1px var(--outline-variant);background:var(--surface);overflow:hidden}
+.gcard .gc-body{padding:12px;display:flex;flex-direction:column;gap:4px}
+.gcard .gc-top{display:flex;align-items:flex-start;gap:8px}
+.gcard .gc-name{flex:1;min-width:0;font-size:16px;line-height:20px;font-weight:500;letter-spacing:.64px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;word-break:break-all}
+.gcard .gc-meta{font-size:14px;line-height:20px;color:var(--on_surface-variant)}
+.gcard .gc-pick{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:14px;line-height:20px}
+.gcard .gc-pick b{font-weight:500;letter-spacing:.64px}
+.gcard .gc-actions{display:flex;gap:8px;padding:0 12px 12px}
+.gcard .gc-actions .btn{flex:1}
+.gcard .gc-pickrow{display:flex;align-items:center;gap:8px;min-height:36px;margin:0 1px 1px;padding:8px 11px;border-top:1px solid var(--outline-variant-bright);background:var(--surface-low);font-size:14px;line-height:20px}
+.gcard .gc-pickrow b{font-weight:500;letter-spacing:.64px}
+.gcard .gc-pickrow .sp{flex:1}
+.cart-gcard .gc-top{}
+.so-list{margin-top:16px;padding:12px;border-radius:8px;background:var(--surface-low);display:flex;flex-direction:column;gap:8px;text-align:left;font-size:14px;line-height:20px}
+.so-list div{display:flex;gap:8px}.so-list b{flex:none;width:48px;font-weight:500}.so-list span{flex:1;min-width:0}
+.menu-tabs{display:flex;gap:8px;padding:16px 4px 0;margin-top:24px;overflow-x:auto;scrollbar-width:none} /* DS TabOptionBar */
+.menu-tabs span{flex-shrink:0;display:inline-flex;flex-direction:column;gap:4px;padding:8px 12px 0;font-size:14px;line-height:20px;font-weight:500;color:var(--on_surface-variant);white-space:nowrap;text-align:center} /* DS TabOption */
+.menu-tabs span::after{content:'';height:2px;border-radius:1px 1px 0 0;background:transparent}
+.menu-tabs span.on{color:var(--primary)}
+.menu-tabs span.on::after{background:var(--primary)}
+.menu-sec{padding:24px 16px 0}
+.menu-item{display:flex;justify-content:space-between;gap:8px;padding:0 0 16px;border-bottom:1px solid var(--divider);margin-bottom:16px}
+.menu-item .mi-body{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.mi-name{font-size:16px;line-height:20px;font-weight:500;letter-spacing:.64px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mi-desc{font-size:12px;line-height:16px;color:var(--on_surface-variant);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-price{display:flex;gap:8px;align-items:center;font-size:14px;line-height:20px;font-weight:500;color:var(--on_surface-variant)}
+.mi-price .sale{color:var(--primary)}
+.mi-price s{font-weight:400}
+.sale-tags{display:flex;gap:4px;flex-wrap:wrap}
+.sale-tag{font-size:12px;line-height:16px;padding:2px 6px;border-radius:14px;background:var(--primary-container);color:var(--primary);border:1px solid var(--outline-variant-bright)}
+.photo{position:relative;width:112px;height:112px;border-radius:12px;flex:none;align-self:flex-start;overflow:hidden;display:grid;place-items:center;font-size:48px}
+.photo .plus-fab{position:absolute;right:4px;bottom:4px}
+.plus-fab.lim,.plus-fab.lim.has{background:var(--disabled,#E0E0E0);color:var(--on_disabled,#999);border-color:transparent;filter:none;cursor:default;font-size:16px;font-weight:500;font-family:inherit}
+.plus-fab.has{background:var(--primary);color:var(--on_primary);border-color:var(--primary);font-size:16px;line-height:20px;font-weight:500;font-family:inherit}
+.photo img,.item-photo img,.store-logo img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+.photo.sm{width:64px;height:64px;border-radius:8px;font-size:30px}
+.ph-1{background:#F3D9B8}.ph-2{background:#F6D4D2}.ph-3{background:#E8DCCB}.ph-4{background:#E6EBC7}.ph-5{background:#FBE9B7}
+.bottom-bar{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--divider);padding:12px 16px 20px;z-index:6}
+.cart-btn{width:100%;height:48px;border-radius:8px;border:0;background:var(--primary);color:var(--on_primary);display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;font-weight:500;letter-spacing:.64px;cursor:pointer}
+.cart-btn .cnt{width:24px;height:24px;border-radius:12px;background:var(--primary_pressed);display:grid;place-items:center;font-size:12px;letter-spacing:0}
+.cart-btn[disabled]{background:var(--disabled);color:var(--on_disabled);cursor:not-allowed}
+.cart-btn[disabled] .cnt{background:var(--surface-lowest)}
+.empty-block{padding:24px 16px;display:flex;flex-direction:column;gap:12px}
+
+/* 購物車 */
+.top-bar{height:56px;display:flex;align-items:center;gap:8px;padding:0 16px;position:sticky;top:0;background:var(--surface);z-index:5;border-bottom:1px solid var(--divider)}
+.top-bar .tb-title{flex:1;text-align:center;padding-right:24px}
+.icon-btn{width:24px;height:24px;border:0;background:none;padding:0;cursor:pointer;color:var(--on_surface);display:grid;place-items:center}
+.sec{padding:16px}
+.sec-title{font-size:20px;line-height:24px;font-weight:500;margin:0 0 12px}
+.gcart{border:1px solid var(--outline-variant-bright);border-radius:12px;overflow:hidden;margin-bottom:12px}
+.gcart.self{border-color:var(--outline-variant)}
+.gcart-h{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--surface-low);border-bottom:1px solid var(--outline-variant-bright);cursor:pointer}
+.gcart-h .nm{font-size:16px;line-height:20px;font-weight:700}
+.gcart-h .sp{flex:1}
+.gcart-h .sum{font-size:16px;line-height:20px;font-weight:700;text-align:right}
+.gcart-h .lim{font-size:12px;line-height:16px;color:var(--on_surface-variant);text-align:right}
+.gcart-h .lim.over{color:var(--primary_pressed)}
+/* 有每人上限時：已點金額與上限同一列（HungYu 調整，流程稿 10） */
+.gcart-h .sumrow{display:flex;align-items:center;gap:12px}
+.gcart-h .sumrow .lim{text-align:left}
+.gcart.collapsed .gcart-h{border-bottom:0}
+.gcart.collapsed .gcart-b{display:none}
+.gcart-b{padding:0 16px}
+.citem{display:flex;gap:12px;padding:16px 0;border-bottom:1px solid var(--divider)}
+.citem:last-child{border-bottom:0}
+.citem .ci-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.ci-name{font-size:16px;line-height:20px;font-weight:700;display:flex;justify-content:space-between;gap:8px}
+.ci-opt{font-size:12px;line-height:16px;color:var(--on_surface-variant)}
+.ci-price{font-size:14px;line-height:20px}
+.ci-actions{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:4px}
+.ci-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ci-follow{display:flex;align-items:center;gap:4px;margin-top:4px;padding-top:8px;border-top:1px solid var(--outline-variant-bright)}
+.ci-follow-btn{display:inline-flex;align-items:center;gap:4px;border:0;padding:0;cursor:pointer;font-family:inherit}
+.ci-follow-btn svg{width:16px;height:16px}
+.edit-sec{border:1px solid var(--outline-variant);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:16px}
+.edit-sec .es-t{font-size:16px;line-height:20px;font-weight:500}
+.edit-sec .es-d{margin-top:4px;font-size:12px;line-height:16px;color:var(--on_surface-variant)}
+.gcart-f{padding:12px 16px;border-top:1px solid var(--outline-variant-bright)}
+.btn-text-quiet{background:none;color:var(--on_surface);font-size:14px;line-height:20px;font-weight:500}
+.ci-follow-btn[disabled]{color:var(--on_disabled);cursor:not-allowed}
+.ci-x{font-size:14px;color:var(--on_surface-variant);font-weight:400}
+.gc-empty{padding:16px 0;font-size:14px;line-height:20px;color:var(--on_surface-variant-bright)}
+.sum-row{display:flex;justify-content:space-between;font-size:14px;line-height:20px;padding:6px 0}
+.nav-row{padding:16px 12px 16px 16px} /* 沿用購物車步驟一（Figma 1923:42261／1923:42275），列與列之間無分隔線 */
+.nav-row.first{padding-bottom:8px;border-top:2px solid var(--divider-variant,#F3F3F3)} /* 品項區塊底線（Figma 1923:42219 border-b-2 divider-variant） */
+.nav-div{margin:0 16px;border-top:1px solid var(--outline-variant-bright)} /* Figma 1923:42288 */
+.nav-row .nr-top{display:flex;align-items:center;justify-content:space-between}
+.nav-row .nr-l{display:flex;align-items:center;gap:12px}
+.nav-row svg{width:24px;height:24px;color:var(--on_surface);flex:none}
+.nav-row .nr-t{font-size:16px;line-height:20px;font-weight:500;letter-spacing:.64px}
+.nav-row .nr-sub{margin-top:8px;font-size:14px;line-height:20px;color:var(--on_surface-variant)}
+.list-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--divider);font-size:16px;line-height:20px}
+.textarea{width:100%;height:80px;border:2px solid var(--outline-variant);border-radius:8px;padding:12px;font-family:inherit;font-size:14px;resize:none;color:var(--on_surface)}
+.s2-remind{background:var(--secondary-container);color:var(--on_secondary-container);border-radius:12px;padding:16px;display:grid;gap:8px;font-size:14px;line-height:20px;font-weight:500} /* 提醒事項：改用 secondary container／on secondary container（HungYu 指定） */
+.s2-remind-h{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;letter-spacing:.64px}
+.s2-remind-h svg{width:24px;height:24px}
+.s2-sec{padding:16px;border-bottom:2px solid var(--divider-variant,#F3F3F3)}
+.s2-h{font-size:18px;line-height:20px;font-weight:500;letter-spacing:.72px}
+.s2-store{display:flex;gap:12px;align-items:center;padding:12px 16px;margin-top:12px}
+.s2-store img{width:48px;height:48px;border-radius:8px;border:1px solid var(--outline-variant-bright);box-shadow:0 2px 10px rgba(66,66,66,.1);object-fit:cover}
+.s2-name{font-size:16px;line-height:20px;font-weight:500;letter-spacing:.64px}
+.s2-card{margin:12px 16px 0;border:1px solid var(--outline-variant);border-radius:12px;overflow:hidden}
+.s2-mem{display:flex;justify-content:space-between;padding:12px 16px;background:var(--surface-low);border-bottom:1px solid var(--outline-variant-bright);font-size:16px;line-height:20px;font-weight:700}
+.s2-card .s2-item+.s2-item{border-top:1px solid var(--outline-variant-bright)}
+.s2-item{display:flex;gap:12px;align-items:flex-start;padding:12px 16px}
+.s2-item .q{width:28px;flex:none;font-size:14px;line-height:20px;font-weight:500}
+.s2-item .p{font-size:14px;line-height:20px;font-weight:500}
+.s2-opt{margin-top:4px;font-size:12px;line-height:16px;color:var(--on_surface-variant-bright)}
+.rec-card{margin:0 16px;border:1px solid var(--outline-variant);border-radius:12px;padding:16px;display:flex;flex-direction:column}
+.s2-ph{font-size:14px;line-height:20px;color:var(--on_surface-variant-bright)}
+.step2-box{border:1px dashed var(--outline);border-radius:12px;padding:16px;color:var(--on_surface-variant);font-size:14px;line-height:20px}
+
+/* Dialog（暫定：取自 D-1 購物車「品項已自動移除」Dialog 51:24510，尚未入 DS 文件） */
+.mask{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:20}
+.dialog-wrap{position:absolute;inset:0;z-index:21;display:grid;place-items:center;padding:16px}
+.dialog{width:343px;max-width:100%;background:var(--surface);border-radius:12px;padding:32px 24px 24px;display:flex;flex-direction:column;gap:24px;max-height:calc(100% - 32px);overflow:auto;position:relative}
+.dialog .d-text{display:flex;flex-direction:column;gap:8px;text-align:center}
+.dialog .d-actions{display:flex;flex-direction:column;gap:8px}
+.dialog .d-close{position:absolute;top:16px;right:16px}
+.info-list{display:flex;flex-direction:column;gap:0;text-align:left}
+.info-list .il{display:grid;grid-template-columns:96px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--divider);font-size:14px;line-height:20px}
+.info-list .il:last-child{border-bottom:0}
+.info-list .il dt{color:var(--on_surface-variant)}
+.info-list .il dd{margin:0;word-break:break-all}
+
+/* Bottom sheet（暫定：取自 B-5 取餐方式設定 4692:52740） */
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-radius:8px 8px 0 0;max-height:88%;display:flex;flex-direction:column}
+.sheet-h{display:flex;align-items:center;gap:8px;padding:12px 12px 12px 16px;min-height:44px}
+.sheet-h .sh-title{flex:1;text-align:center;font-size:16px;line-height:20px;font-weight:500}
+.sheet-pk{height:76%}
+.sheet-pk .sheet-b{flex:1;min-height:0}
+.sheet-pk .time-list{max-height:none;overflow:visible}
+.sheet-pk .sheet-b>*{flex-shrink:0}
+.sheet-b{overflow-y:auto;padding:4px 16px 16px;display:flex;flex-direction:column;gap:20px}
+.sheet-f{border-top:1px solid var(--divider);padding:16px}
+.pick-row{display:flex;justify-content:space-between;align-items:center;min-height:48px;border:2px solid var(--outline-variant);border-radius:8px;padding:12px;cursor:pointer;font-size:16px;line-height:20px;background:var(--surface);width:100%;color:var(--on_surface);font-family:inherit;text-align:left}
+.pick-row.warn{border-color:var(--primary_pressed)}
+/* 日期列＋時間清單＋月曆：依 B-5 取餐方式與時間設定（Figma 4692:52696） */
+.date-row{display:flex;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding-right:16px}
+.date-row::-webkit-scrollbar{display:none}
+.cal-pin{position:sticky;left:0;z-index:1;flex:none;background:var(--surface);padding:0 8px 0 16px}
+.cal-chip{width:82px;height:68px;border:0;border-radius:10px;background:var(--primary);color:var(--on_primary);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;font:500 16px/20px inherit;letter-spacing:.64px;padding:0}
+.cal-chip:hover{background:var(--primary_hover)}
+.date-chip{flex:none;width:88px;height:68px;margin-right:8px;border:2px solid var(--outline-variant);border-radius:10px;padding:0 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--surface);color:var(--on_surface-variant);cursor:pointer;font-family:inherit}
+.date-chip .d1{font-size:14px;line-height:20px;font-weight:500}
+.date-chip .d2{font-size:16px;line-height:20px;font-weight:500;letter-spacing:.64px;white-space:nowrap}
+.date-chip.on{border-color:var(--primary);color:var(--on_surface)}
+.time-list{display:flex;flex-direction:column;max-height:264px;overflow-y:auto}
+.time-opt{flex:none;height:44px;display:grid;place-items:center;border:0;background:var(--surface);font-size:14px;line-height:20px;color:var(--on_surface);border-radius:8px;cursor:pointer;font-family:inherit}
+.time-opt:hover{background:var(--surface-low)}
+.time-opt.on{background:var(--primary-container_hover);color:var(--primary)}
+.time-empty{padding:24px 0;text-align:center;font-size:14px;color:var(--on_surface-variant)}
+.mask2{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:22}
+.sheet2{position:absolute;left:0;right:0;bottom:0;z-index:23;background:var(--surface);border-radius:8px 8px 0 0;padding-bottom:28px}
+.cal{width:343px;max-width:calc(100% - 32px);margin:0 auto}
+.cal-head{height:48px;display:flex;align-items:center;padding:0 20px;gap:8px}
+.cal-head .cal-title{flex:1;text-align:center;font-size:16px;line-height:20px;font-weight:500;letter-spacing:.64px}
+.cal-nav{width:24px;height:24px;border:0;background:none;padding:0;color:var(--on_surface);display:grid;place-items:center;cursor:pointer}
+.cal-nav[disabled]{color:var(--on_disabled);cursor:not-allowed}
+.cal-week,.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:0 20px}
+.cal-week{height:39px;align-items:center;text-align:center;font-size:14px;font-weight:500;color:var(--on_surface-variant);border-bottom:1px solid var(--divider);margin:0 16px;padding:0 4px}
+.cal-grid{row-gap:12px;padding-top:8px}
+.cal-day{height:32px;border:0;background:none;padding:0;display:grid;place-items:center;font:400 14px/20px inherit;color:var(--on_surface);cursor:pointer}
+.cal-day span{width:24px;height:24px;border-radius:12px;display:grid;place-items:center}
+.cal-day.on span{background:var(--primary);color:var(--on_primary)}
+.cal-day[disabled]{color:var(--on_disabled);cursor:default}
+.rule{font-size:12px;line-height:16px;color:var(--on_surface-variant);background:var(--surface-low);border-radius:8px;padding:8px 12px}
+
+/* Message（message.md：Navigation 下方 20px、水平置中） */
+.msg{position:absolute;top:76px;left:50%;transform:translateX(-50%);z-index:30;height:36px;padding:8px 12px;border-radius:8px;font-size:14px;line-height:20px;font-weight:500;white-space:nowrap;background:var(--inverse-surface);color:var(--inverse-on-surface)}
+.msg.error{background:var(--error);color:var(--on_error)}
+
+/* Item 頁（簡化版，參照 B-6 菜單品項頁） */
+.item-sheet{height:calc(100% - 140px);max-height:none;border-radius:12px 12px 0 0;overflow:hidden}
+.item-sheet .sheet-b{flex:1;min-height:0}
+.item-sheet .sheet-b>*{flex-shrink:0}
+.is-top{position:absolute;top:12px;left:16px;right:16px;z-index:1;display:flex;align-items:center;gap:8px;pointer-events:none}
+.is-top>*{pointer-events:auto}
+.is-close{width:32px;height:32px;border:0;border-radius:50%;background:var(--surface);box-shadow:0 2px 5px rgba(66,66,66,.1);display:grid;place-items:center;cursor:pointer;color:var(--on_surface);padding:0}
+.is-close svg{width:20px;height:20px}
+.is-follow{font-size:14px;line-height:20px;font-weight:500;color:var(--on_surface);background:var(--surface);border-radius:16px;padding:6px 12px;box-shadow:0 2px 5px rgba(66,66,66,.1)}
+.is-photo{height:250px;overflow:hidden;background:var(--surface-low)}
+.is-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.is-head{padding:12px 16px 16px;border-bottom:2px solid var(--divider-variant,#F3F3F3)}
+.is-name{font-size:18px;line-height:24px;font-weight:500;letter-spacing:.72px}
+.is-price{margin-top:4px;font-size:16px;line-height:24px;color:var(--on_surface-variant)}
+.is-sec{padding:20px 16px;border-bottom:2px solid var(--divider-variant,#F3F3F3)}
+.is-sec:last-child{border-bottom:0}
+.is-t{font-size:18px;line-height:18px;font-weight:500;letter-spacing:.72px}
+.is-sub{margin-top:4px;font-size:14px;line-height:20px}
+.is-opts{margin-top:12px;display:grid}
+.is-opts .radio-row{min-height:52px;font-weight:500}
+.is-count{margin-top:4px;text-align:right;font-size:12px;line-height:16px;color:var(--on_surface-variant-bright)}
+.is-foot{display:flex;flex-direction:column;gap:8px;padding:16px 24px 16px}
+.ctr-btn.is-minus:disabled{background:var(--outline);color:var(--surface);box-shadow:none;opacity:1}
+.item-photo{height:220px;display:grid;place-items:center;font-size:96px}
+.opt-group{border-top:8px solid var(--surface-low);padding:16px}
+.opt-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+
+/* 標註 badge */
+.qb{display:inline-grid;place-items:center;min-width:22px;height:18px;padding:0 4px;border-radius:9px;background:#8C641D;color:#FFF;font-size:10px;line-height:18px;font-weight:700;cursor:pointer;vertical-align:middle;margin-left:4px;letter-spacing:0;border:0;font-family:inherit}
+.qb.tmp{background:#0D507A}
+.hide-annot .qb{display:none}
+</style>
+</head>
+<body>
+<div class="layout" id="app">
+  <aside class="panel" id="ctlPanel" aria-label="原型控制"></aside>
+  <main class="phone-col">
+    <p class="screen-name" id="screenName"></p>
+    <div class="phone" id="phone"></div>
+  </main>
+  <aside class="panel" id="notePanel" aria-label="規格對照與待確認事項"></aside>
+</div>
+<div id="mScrim"></div>
+<div id="mBar" role="tablist" aria-label="原型控制面板"><button class="m-tab" id="mTabCtl" role="tab" aria-selected="true">控制</button><button class="m-tab" id="mTabNotes" role="tab" aria-selected="false">規格對照</button><button class="m-x" id="mClose">關閉</button></div>
+
+<script>
+/* ================= Icons ================= */
+const I = {
+  editS:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
+  infoS:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
+  shareS:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v7h14v-7"/></svg>',
+  coupon:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M 14.019 0.964 C 12.732 -0.321 10.646 -0.321 9.36 0.964 C 9.323 1.001 9.289 1.041 9.259 1.083 L 0.965 9.372 C -0.322 10.658 -0.322 12.744 0.965 14.029 L 1.585 14.649 C 2.227 15.291 3.095 15.285 3.742 15.014 L 3.742 15.014 L 3.749 15.011 C 4.083 14.868 4.484 14.92 4.798 15.191 C 4.818 15.211 4.853 15.245 4.897 15.282 C 5.159 15.568 5.219 15.98 5.069 16.332 C 4.77 17.011 4.812 17.884 5.43 18.5 L 6.05 19.12 C 7.336 20.405 9.422 20.405 10.709 19.12 L 19.113 10.722 C 20.4 9.436 20.4 7.35 19.113 6.064 L 18.498 5.45 C 18.066 5.005 17.218 4.665 16.313 5.075 C 15.948 5.226 15.506 5.148 15.211 4.853 C 14.921 4.564 14.844 4.122 15.001 3.749 C 15.298 3.07 15.255 2.2 14.639 1.584 L 14.003 2.22 L 14.639 1.584 L 14.019 0.964 Z M 10.651 2.237 C 10.679 2.209 10.706 2.179 10.729 2.148 C 11.316 1.656 12.194 1.686 12.746 2.237 L 13.374 1.609 L 12.746 2.237 L 13.367 2.857 C 13.371 2.862 13.376 2.867 13.379 2.887 C 13.382 2.912 13.381 2.962 13.351 3.029 L 13.351 3.029 L 13.346 3.041 C 12.914 4.059 13.104 5.293 13.939 6.127 C 14.767 6.954 15.999 7.164 17.025 6.728 C 17.034 6.725 17.043 6.721 17.052 6.717 C 17.089 6.699 17.116 6.694 17.132 6.693 C 17.149 6.691 17.163 6.693 17.176 6.696 C 17.19 6.699 17.202 6.704 17.21 6.709 L 17.214 6.711 L 17.221 6.718 L 17.841 7.337 C 18.424 7.92 18.424 8.866 17.841 9.448 L 9.436 17.847 C 8.853 18.43 7.905 18.43 7.322 17.847 L 6.702 17.227 C 6.697 17.223 6.692 17.217 6.689 17.197 C 6.686 17.172 6.688 17.122 6.717 17.055 L 6.717 17.055 L 6.721 17.047 C 7.154 16.041 6.977 14.814 6.139 13.976 C 6.113 13.95 6.086 13.926 6.057 13.904 L 6.053 13.9 C 6.042 13.889 6.031 13.878 6.019 13.868 C 5.192 13.124 4.04 12.931 3.045 13.355 C 2.962 13.389 2.906 13.39 2.882 13.387 C 2.872 13.386 2.868 13.384 2.867 13.384 L 2.867 13.384 L 2.865 13.382 C 2.864 13.382 2.861 13.38 2.857 13.376 L 2.237 12.756 C 1.654 12.174 1.654 11.228 2.237 10.645 L 10.651 2.237 Z M 7.83 9.236 C 7.392 8.808 6.695 8.808 6.266 9.236 C 5.837 9.675 5.827 10.371 6.266 10.8 C 6.705 11.229 7.401 11.238 7.83 10.8 C 8.26 10.361 8.269 9.665 7.83 9.236 Z M 10.711 13.288 C 10.711 13.469 10.635 13.641 10.521 13.755 C 10.406 13.869 10.234 13.946 10.053 13.946 C 9.681 13.946 9.385 13.65 9.385 13.278 L 9.385 6.777 C 9.385 6.405 9.681 6.11 10.053 6.11 C 10.425 6.11 10.721 6.405 10.721 6.777 L 10.721 13.278 L 10.711 13.288 Z M 12.247 9.284 C 11.818 9.723 11.809 10.419 12.247 10.848 C 12.686 11.277 13.383 11.277 13.812 10.848 C 14.241 10.409 14.251 9.713 13.812 9.284 C 13.373 8.855 12.677 8.846 12.247 9.284 Z" fill="currentColor" fill-rule="evenodd" transform="matrix(1 0 0 1 2 2)"/></svg>', /* DS Icon RegularCouponUser（Figma Regular/Coupon-user） */
+  pointBook:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M 1.752 0.9 C 1.752 0.403 2.155 0 2.652 0 L 15.356 0 C 15.853 0 16.256 0.403 16.256 0.9 C 16.256 1.397 15.853 1.8 15.356 1.8 L 2.652 1.8 C 2.155 1.8 1.752 1.397 1.752 0.9 Z M 0 3.725 C 0 3.228 0.403 2.825 0.9 2.825 L 17.098 2.825 C 17.595 2.825 17.998 3.228 17.998 3.725 L 17.998 17.097 C 17.998 17.594 17.595 17.997 17.098 17.997 L 0.9 17.997 C 0.403 17.997 0 17.594 0 17.097 L 0 3.725 Z M 1.8 4.625 L 1.8 16.197 L 16.198 16.197 L 16.198 4.625 L 1.8 4.625 Z M 4.225 7.2 C 4.225 6.703 4.628 6.3 5.125 6.3 L 7.007 6.3 C 7.504 6.3 7.907 6.703 7.907 7.2 C 7.907 7.698 7.504 8.1 7.007 8.1 L 5.125 8.1 C 4.628 8.1 4.225 7.698 4.225 7.2 Z M 10.121 7.2 C 10.121 6.703 10.524 6.3 11.021 6.3 L 12.903 6.3 C 13.4 6.3 13.803 6.703 13.803 7.2 C 13.803 7.698 13.4 8.1 12.903 8.1 L 11.021 8.1 C 10.524 8.1 10.121 7.698 10.121 7.2 Z M 4.215 10.416 C 4.215 9.919 4.618 9.516 5.115 9.516 L 6.997 9.516 C 7.494 9.516 7.897 9.919 7.897 10.416 C 7.897 10.913 7.494 11.316 6.997 11.316 L 5.115 11.316 C 4.618 11.316 4.215 10.913 4.215 10.416 Z M 10.101 10.416 C 10.101 9.919 10.504 9.516 11.001 9.516 L 12.893 9.516 C 13.39 9.516 13.793 9.919 13.793 10.416 C 13.793 10.913 13.39 11.316 12.893 11.316 L 11.001 11.316 C 10.504 11.316 10.101 10.913 10.101 10.416 Z M 4.205 13.631 C 4.205 13.134 4.608 12.731 5.105 12.731 L 6.987 12.731 C 7.484 12.731 7.887 13.134 7.887 13.631 C 7.887 14.128 7.484 14.531 6.987 14.531 L 5.105 14.531 C 4.608 14.531 4.205 14.128 4.205 13.631 Z M 10.091 13.631 C 10.091 13.134 10.494 12.731 10.991 12.731 L 12.873 12.731 C 13.37 12.731 13.773 13.134 13.773 13.631 C 13.773 14.128 13.37 14.531 12.873 14.531 L 10.991 14.531 C 10.494 14.531 10.091 14.128 10.091 13.631 Z" fill="currentColor" fill-rule="evenodd" transform="matrix(1 0 0 1 3 3)"/></svg>', /* DS Icon RegularPointBook（Figma Regular/Point-book） */
+  chevRds:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M 7.3 6 L 1.7 0.3 C 1.3 -0.1 0.7 -0.1 0.3 0.3 C -0.1 0.7 -0.1 1.3 0.3 1.7 L 5.2 6.6 L 0.3 11.5 C 0.1 11.7 0 11.9 0 12.2 C 0 12.8 0.4 13.2 1 13.2 C 1.3 13.2 1.5 13.1 1.7 12.9 L 7.4 7.2 C 7.7 7 7.7 6.4 7.3 6 Z" fill="currentColor" fill-rule="nonzero" transform="matrix(1 0 0 1 9 5.300)"/></svg>',
+  plus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  minus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg>',
+  trash:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>',
+  userMinus:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 11h6"/></svg>',
+  close:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  back:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  chevR:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
+  chevD:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></svg>',
+  share:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 13v7h14v-7"/></svg>',
+  group:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3 3 0 010 6M18 14c2 .8 3 3 3 6"/></svg>',
+  alert:'<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 5a1.2 1.2 0 011.2 1.2v4.6a1.2 1.2 0 01-2.4 0V8.2A1.2 1.2 0 0112 7zm0 10.4a1.3 1.3 0 110-2.6 1.3 1.3 0 010 2.6z"/></svg>',
+  cash:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M 1.8 10 C 1.8 5.471 5.471 1.8 10 1.8 C 14.529 1.8 18.2 5.471 18.2 10 C 18.2 14.529 14.529 18.2 10 18.2 C 5.471 18.2 1.8 14.529 1.8 10 Z M 10 0 C 4.477 0 0 4.477 0 10 C 0 15.523 4.477 20 10 20 C 15.523 20 20 15.523 20 10 C 20 4.477 15.523 0 10 0 Z M 9.282 14.404 C 9.282 14.801 9.54 15 10.031 15 L 10.018 14.977 C 10.508 14.977 10.754 14.778 10.754 14.381 L 10.754 13.762 C 11.489 13.633 12.045 13.364 12.445 12.944 C 12.819 12.547 13 12.068 13 11.495 C 13 10.923 12.742 10.444 12.2 10.047 C 11.89 9.825 11.347 9.568 10.586 9.276 C 10.121 9.089 9.798 8.949 9.63 8.843 C 9.359 8.68 9.23 8.505 9.23 8.318 C 9.23 7.85 9.566 7.617 10.25 7.617 C 10.521 7.617 10.792 7.664 11.051 7.757 C 11.283 7.897 11.528 7.956 11.761 7.932 C 11.993 7.909 12.212 7.815 12.393 7.64 C 12.742 7.301 12.729 6.998 12.342 6.717 C 11.877 6.437 11.36 6.262 10.779 6.192 L 10.779 5.596 C 10.779 5.199 10.547 5 10.044 5 C 9.54 5 9.295 5.199 9.295 5.596 L 9.295 6.203 C 8.61 6.32 8.068 6.565 7.681 6.951 C 7.294 7.336 7.1 7.827 7.1 8.4 C 7.1 8.867 7.294 9.276 7.694 9.626 C 7.978 9.883 8.404 10.128 8.998 10.385 C 9.088 10.432 9.23 10.491 9.411 10.561 C 9.914 10.759 10.25 10.923 10.431 11.04 C 10.728 11.227 10.87 11.425 10.87 11.635 C 10.87 12.138 10.495 12.383 9.747 12.383 C 9.385 12.383 9.011 12.313 8.61 12.173 C 8.339 12.033 8.081 11.986 7.823 12.009 C 7.565 12.044 7.345 12.173 7.177 12.371 C 6.88 12.745 6.958 13.072 7.397 13.329 C 7.965 13.61 8.598 13.773 9.282 13.843 L 9.282 14.404 Z" fill="currentColor" fill-rule="evenodd" transform="matrix(1 0 0 1 2 2)"/></svg>',
+  receipt:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M 17.07 0 C 17.57 0 17.97 0.4 17.97 0.9 L 17.97 19.09 C 17.97 19.38 17.83 19.66 17.58 19.83 C 17.33 20 17.03 20.04 16.75 19.94 L 14.35 19.05 L 11.95 19.84 C 11.77 19.9 11.57 19.9 11.38 19.84 L 8.96 19.04 L 6.39 19.85 C 6.21 19.91 6.01 19.9 5.82 19.85 L 3.58 19.06 L 1.19 19.94 C 1.09 19.98 0.98 20 0.88 20 L 0.9 19.99 C 0.72 19.99 0.54 19.93 0.39 19.83 C 0.15 19.66 0 19.39 0 19.09 L 0 0.9 C 0 0.4 0.4 0 0.9 0 L 17.07 0 Z M 1.8 17.8 L 3.28 17.25 C 3.48 17.18 3.69 17.18 3.89 17.25 L 6.15 18.04 L 8.71 17.24 C 8.8 17.21 8.89 17.2 8.98 17.2 L 8.98 17.19 C 9.08 17.19 9.17 17.21 9.26 17.24 L 11.67 18.04 L 14.08 17.24 C 14.27 17.18 14.48 17.18 14.67 17.24 L 16.15 17.79 L 16.15 1.8 L 1.8 1.8 L 1.8 17.8 Z M 13.03 13.32 C 13.53 13.32 13.93 13.72 13.93 14.22 C 13.93 14.72 13.53 15.12 13.03 15.12 L 4.89 15.12 C 4.39 15.12 3.99 14.72 3.99 14.22 C 3.99 13.72 4.39 13.32 4.89 13.32 L 13.03 13.32 Z M 9.021 3.24 C 9.41 3.24 9.59 3.41 9.59 3.75 L 9.59 4.26 C 10.04 4.32 10.44 4.47 10.8 4.71 C 11.1 4.95 11.11 5.21 10.84 5.5 C 10.7 5.65 10.53 5.73 10.35 5.75 C 10.17 5.77 9.98 5.72 9.8 5.6 C 9.6 5.52 9.39 5.48 9.18 5.48 C 8.65 5.481 8.39 5.68 8.39 6.08 C 8.39 6.24 8.49 6.39 8.7 6.53 C 8.83 6.62 9.081 6.74 9.44 6.9 C 10.03 7.15 10.45 7.37 10.69 7.56 C 11.11 7.9 11.31 8.31 11.31 8.8 C 11.31 9.29 11.17 9.7 10.88 10.04 C 10.57 10.4 10.14 10.63 9.57 10.74 L 9.57 11.27 C 9.57 11.61 9.38 11.78 9 11.78 L 9.01 11.8 C 8.63 11.8 8.43 11.63 8.43 11.29 L 8.43 10.81 C 7.9 10.75 7.41 10.61 6.97 10.37 C 6.63 10.15 6.57 9.87 6.8 9.55 C 6.93 9.38 7.1 9.27 7.3 9.24 C 7.5 9.22 7.7 9.26 7.91 9.38 C 8.22 9.5 8.51 9.56 8.79 9.56 C 9.37 9.56 9.66 9.35 9.66 8.92 C 9.66 8.74 9.55 8.57 9.32 8.41 C 9.18 8.31 8.92 8.17 8.53 8 C 8.39 7.94 8.28 7.89 8.21 7.85 C 7.75 7.63 7.42 7.42 7.2 7.2 C 6.89 6.9 6.74 6.55 6.74 6.15 C 6.74 5.66 6.89 5.24 7.19 4.91 C 7.49 4.58 7.91 4.37 8.44 4.27 L 8.44 3.75 C 8.44 3.41 8.631 3.24 9.021 3.24 Z" fill="currentColor" fill-rule="nonzero" transform="matrix(1 0 0 1 3 2)"/></svg>',
+  lock:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>',
+  clock:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  wallet:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h2"/></svg>',
+  menu:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  bag:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 016 0v2"/></svg>',
+  heart:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/></svg>',
+  search:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>',
+  star:'<svg width="16" height="16" viewBox="0 0 24 24" fill="#FFB534"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>',
+  pin:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-8-8 18-2-8-8-2z" stroke-linejoin="round"/></svg>',
+};
+
+/* ================= Data ================= */
+const MENU = {
+  m1:{img:'img/dish-1.jpg',name:'火腿脆皮蛋餅',price:80,orig:null,desc:'包含：火腿、蛋、白胡椒、酥皮蛋餅皮',emoji:'🥞',ph:'ph-1',tags:['加贈N點'],opts:{title:'口感',items:['原味','脆皮']}},
+  m2:{img:'img/dish-2.jpg',name:'經典起司加有機草莓格子鬆餅',price:80,orig:100,desc:'包含：起司、有機草莓、鬆餅',emoji:'🧇',ph:'ph-2',tags:['買X送Y','滿$X折$Y'],opts:{title:'口感',items:['原味','脆皮']}},
+  m3:{img:'img/dish-3.jpg',name:'小農鮮奶茶',price:80,orig:null,desc:'小農鮮乳、阿薩姆紅茶',emoji:'🧋',ph:'ph-3',tags:[],opts:{title:'冰塊',items:['正常冰','少冰','去冰']}},
+  m4:{img:'img/dish-4.jpg',name:'塔香蛋餅',price:40,orig:null,desc:'包含：九層塔、蛋、蛋餅皮',emoji:'🌯',ph:'ph-4',tags:[],opts:{title:'口感',items:['原味','脆皮']}},
+  m5:{img:'img/food-item.png',name:'玉米脆皮蛋餅',price:60,orig:65,desc:'包含：玉米、蛋、酥皮蛋餅皮',emoji:'🌽',ph:'ph-5',tags:['任選第Ｎ件折$Y'],opts:{title:'口感',items:['原味','脆皮']}},
+};
+const STORE = '天橋旁Mikan早午餐';
+const BASE = new Date(2026,10,2); // 模擬今天 2026/11/02（週一）
+const WD = ['週日','週一','週二','週三','週四','週五','週六'];
+const DATES = Array.from({length:14},(_,i)=>{ // 店家可預約 14 天
+  const d=new Date(2026,10,2+i), mm=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  return {label:i===0?'今天':i===1?'明天':WD[d.getDay()], md:`${mm}/${dd}`, chip:`${d.getMonth()+1}月${dd}日`, wd:WD[d.getDay()], y:d.getFullYear(), m:d.getMonth(), d:d.getDate()};
+});
+const dateIdx = (y,m,d) => Math.round((new Date(y,m,d)-BASE)/864e5);
+const NOW = 11*60+3; // 模擬現在時間 11:03
+const MIN_PREP = 15; // 最短預約時間 15 分鐘
+const OPEN = 7*60+30, CLOSE = 14*60; // 營業 07:30–14:00
+
+let uidSeq = 100;
+function it(mid,qty,opts){return {uid:'u'+(uidSeq++),mid,qty,opts}}
+function seedCarts(){
+  return {
+    lead:{id:'lead',name:'王小明',lead:true,joined:0,items:[it('m1',2,'脆皮, 加胡椒, 2x 起司片'),it('m2',1,'脆皮, 加胡椒, 2x 起司片'),it('m3',1,'少冰, 微糖')]},
+    mei:{id:'mei',name:'小美',joined:1,items:[it('m2',1,'原味, 加蜂蜜'),it('m3',1,'去冰, 半糖')]},
+    ming:{id:'ming',name:'阿明',joined:2,items:[it('m4',2,'脆皮')]},
+    shan:{id:'shan',name:'佩珊',joined:3,items:[]},
+    zhe:{id:'zhe',name:'阿哲',visitor:true,joined:4,items:[]},
+  };
+}
+function defaultGroup(){
+  return {name:'王小明的限時團購',type:'自取',date:2,time:12*60+30,limit:300,dDate:0,dTime:12*60};
+}
+
+/* ================= State ================= */
+const S = {
+  store:{type:'自取',asap:true,date:0,time:null,dine:'預約訂餐'}, // 店家頁一般身份的取餐方式（沿用現行 B-5）
+  role:'leader',          // guest | member | blacklist | leader | gm | gv
+  status:'open',          // open | closed | locked | lockedPast
+  pickupInvalid:false,
+  menuChanged:false,
+  pendingLock:false,
+  screen:'store',         // store | cart | step2
+  dialog:null, dlg:{},
+  sheet:null, sh:{},
+  toast:null,
+  annot:true,
+  group:defaultGroup(),
+  carts:seedCarts(),
+  normalCart:[],
+  collapsed:{},
+};
+
+/* ================= Helpers ================= */
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const t2s = m => String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+/* 金額一律顯示整數（HungYu 決定刪除小數，待與 PM 確認，見 Q4） */
+const money = (n) => '$'+Math.round(n).toLocaleString('en-US');
+const dateStr = i => DATES[i].md+' ('+DATES[i].wd+')';
+const isGroup = () => ['leader','gm','gv'].includes(S.role);
+const isLeader = () => S.role==='leader';
+const isLocked = () => S.status==='locked'||S.status==='lockedPast';
+const isPast = () => S.status==='closed'||S.status==='lockedPast';
+const meId = () => isLeader()?'lead':(S.role==='gm'?'mei':'zhe');
+const me = () => S.carts[meId()];
+const subtotal = c => c.items.reduce((a,x)=>a+MENU[x.mid].price*x.qty,0);
+const itemCount = c => c.items.reduce((a,x)=>a+x.qty,0);
+function memberList(){
+  const ids = Object.keys(S.carts).filter(id => S.role==='gv' || id!=='zhe');
+  const mine = meId();
+  const others = ids.filter(id=>id!==mine).sort((a,b)=>S.carts[b].joined-S.carts[a].joined);
+  return [mine,...others].filter(id=>S.carts[id]).map(id=>S.carts[id]);
+}
+function canEditMine(){ if(isLocked()) return false; if(isLeader()) return true; return !isPast(); }
+function canEditCart(c){ if(c.id===meId()) return canEditMine(); return isLeader() && !isLocked(); }
+const QB = (id,tmp) => `<button class="qb${tmp?' tmp':''}" data-act="q" data-q="${id}" aria-label="查看 ${id}">${id}</button>`;
+/* 取餐方式與時間：沿用現行設計（staging 店家頁「更改」）。自取／內用（預約訂餐）選日期＋時間；內用另有候位中／已有座位；外送需先設定地址；宅配只選日期 */
+const PK_TYPES=['自取','內用','外送','宅配'];
+const DELIVERY_FROM=5; // 宅配最早可選：今天＋5 天（同 staging）
+function pkText(o,group){
+  if(o.type==='外送') return '外送：請設定地址';
+  if(o.type==='宅配') return `宅配：${dateStr(o.date)}`;
+  if(o.type==='內用' && !group && o.dine!=='預約訂餐') return `內用：${o.dine}`;
+  if(!group && o.asap) return `${o.type}：儘快 (10-15分鐘)`;
+  return `${o.type}：${dateStr(o.date)} ${t2s(o.time)}`;
+}
+function pickupText(){ return pkText(S.group,true); }
+/* 一般身份的可選時間：現在＋最短預約，進位至 5 分（團購另有 G3 規則，見 pickupTimes） */
+function storeTimes(dIdx){ const out=[]; let st=OPEN; if(dIdx===0) st=Math.max(OPEN,Math.ceil((NOW+MIN_PREP)/5)*5); for(let m=st;m<=CLOSE;m+=5) out.push(m); return out; }
+function pkDates(tmp,group){
+  const out=[];
+  if(tmp.type==='宅配'){ for(let i=DELIVERY_FROM;i<DATES.length;i++) out.push(i); return out; }
+  const n = tmp.type==='內用' ? 2 : DATES.length; // 內用預約只開放今天、明天（同 staging）
+  for(let i=0;i<n;i++){ if((group?pickupTimes(i):storeTimes(i)).length) out.push(i); }
+  return out;
+}
+function deadlineText(){ const g=S.group; return `${dateStr(g.dDate)} ${t2s(g.dTime)}`; }
+
+/* 取餐時間可選清單（開團規則） */
+function pickupTimes(dIdx){
+  const out=[];
+  let start = OPEN;
+  if(dIdx===0){
+    const earliest = Math.ceil((NOW+2*MIN_PREP)/5)*5;   // 現在 + 2×最短預約時間，進位至 5 分
+    start = Math.max(OPEN, earliest);
+  }
+  for(let m=start;m<=CLOSE;m+=5){
+    if(dIdx===0 && m-MIN_PREP <= NOW+10) continue;       // 排除無可用截止區間者
+    out.push(m);
+  }
+  return out;
+}
+/* 截止時間可選清單 */
+/* 原截止時間已不可選時，自動選第一個可選時間（同開團預設＝現在＋10 分；HungYu 同意，待 PM 確認） */
+function dlAutoPick(){ const t=S.sh.tmp, f=S.sh.form; let l=deadlineTimes(t.dDate,f); if(l.includes(t.dTime)) return;
+  if(!l.length){ for(let i=0;i<=f.date;i++){ const li=deadlineTimes(i,f); if(li.length){ t.dDate=i; l=li; break; } } }
+  if(l.length) t.dTime=l[0]; }
+function deadlineTimes(dIdx,g){
+  const out=[];
+  const minT = dIdx===0 ? Math.ceil((NOW+10)/5)*5 : 0;
+  const maxT = dIdx===g.date ? g.time-MIN_PREP : 23*60+55;
+  for(let m=minT;m<=maxT;m+=5) out.push(m);
+  return out;
+}
+function deadlineValid(g){
+  if(g.dDate>g.date) return false;
+  return deadlineTimes(g.dDate,g).includes(g.dTime);
+}
+function clampDeadline(g){
+  if(g.dDate>g.date) g.dDate=g.date;
+  const list = deadlineTimes(g.dDate,g);
+  if(!list.includes(g.dTime)) g.dTime = list.length? (g.dTime>list[list.length-1]?list[list.length-1]:list[0]) : g.dTime;
+}
+
+function toast(text,type){
+  S.toast={text,type:type||'default',id:Date.now()};
+  const id=S.toast.id;
+  setTimeout(()=>{ if(S.toast&&S.toast.id===id){S.toast=null;render();} }, type==='error'?5000:3000);
+}
+
+/* ================= Store page ================= */
+function renderStore(){
+  const grp = isGroup();
+  const leader = isLeader();
+  const past = isPast(), locked = isLocked();
+  const menuDisabled = grp && (locked || (!leader && past));
+  const limitedView = grp && S.pickupInvalid;
+  let h = `<div class="scroll">`;
+  h += `<div class="navbar"><div class="logo"><span class="icon-btn">${I.menu}</span><img class="logo-img" src="img/logo-mark.svg" alt="愛點餐" width="28" height="28"></div>
+        <div class="nav-icons">${grp?'':'<span>'+I.bag+'</span>'}</div></div>`;
+  h += `<div class="hero"><div class="hero-icons"><span class="round-ic">${I.heart}</span><span class="round-ic">${I.search}</span></div>
+        <div class="store-logo"><img src="img/store-logo-mikan.png" alt="店家 Logo"></div></div>`;
+  h += `<div class="store-info"><div class="store-head${grp?'':' with-btn'}">
+        <div class="store-title-col"><div class="t-h4 store-name">${STORE}</div>
+        <div class="meta">${(grp&&!leader)?'':`<span style="display:inline-flex;gap:4px;align-items:center">${I.pin}600公尺</span><span class="dot"></span>`}
+        <span style="display:inline-flex;gap:4px;align-items:center">${I.star}4.6 (410+)</span><span class="dot"></span><span style="text-decoration:underline">店家詳情</span>${(grp&&!leader)?QB('S1'):''}</div></div>
+        ${grp?'':`<span class="store-head-btn"><button class="btn btn-m btn-outline-primary" data-act="startGroup">${I.group}揪團</button>${QB('D1',1)}</span>`}</div>`;
+
+  if(grp && limitedView){ /* 規格 3.2：取餐方式／時間失效時僅顯示店家資訊區塊 → 團購卡只留團名 */
+    h += `<div class="gcard" style="padding:12px;display:flex;align-items:flex-start;gap:8px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outline-variant)"><span class="tag-group" style="flex:none;height:20px;padding:0 6px;border-radius:4px;background:var(--secondary-fixed-variant);color:var(--on_secondary-container);font-size:12px;line-height:20px;font-weight:500">團購</span><span style="flex:1;min-width:0;font-size:16px;line-height:20px;font-weight:500">${esc(S.group.name)}</span></div>`;
+  } else if(grp){
+    h += groupCard();
+  }
+
+  if(limitedView){
+    h += `<div class="notice">${I.alert}<div class="n-body"><div class="n-title">取餐方式與時間需要重新設定</div>
+      店家調整了營業設定，原本的取餐方式或時間目前無法使用。${leader?'請重新設定，團員才能繼續點餐。':'請通知團長重新設定，完成後即可繼續點餐。'}<div style="margin-top:4px;font-size:12px;line-height:16px">原設定：${esc(pkText(S.group,true))}</div></div></div>`;
+    if(leader) h += `<button class="btn btn-l btn-outline btn-block" data-act="openEdit" data-focus="pickup">調整取餐方式與時間</button>`;
+    h += `</div></div>`;
+    return h;
+  }
+
+  if(!grp){
+    h += `<div class="segmented">${PK_TYPES.map(t=>`<span class="${S.store.type===t?'on':''}" data-act="storeType" data-v="${t}">${t}</span>`).join('')}</div>
+      <button class="pickup" data-act="openStorePickup" style="width:100%;background:var(--surface);font-family:inherit;color:inherit;text-align:left;cursor:pointer"><span class="t-label-l">${pkText(S.store,false)}</span><span class="btn-text-primary" style="display:flex;align-items:center;gap:4px">更改${I.chevR}</span></button>`;
+  } else {
+    /* 取餐資訊已併入團購資訊卡（卡片 A-2），不再另外顯示唯讀取餐區塊 */
+  }
+  h += `<div><div class="reminder-title">${I.alert}<span>提醒事項</span></div><p class="t-body-m" style="margin:4px 0 0">訂餐5份以內，在取餐時間1小時內，您可以免費取消。訂餐超過5份，在取餐前一天16:59前取消，不會收取費用。</p></div>`;
+  if(!grp || leader){ /* 規格：只有團員隱藏優惠活動區塊，團長照常顯示 */
+    h += `<div class="coupon"><div><div class="t-label-m" style="color:var(--on_secondary)">任選第3件折$1,000</div><div class="t-desc c-var">消費滿$100</div></div><span class="btn btn-m" style="background:var(--secondary-fixed-dim);color:var(--on_secondary-fixed-dim)">立即領取</span></div>`;
+  }
+  h += `</div>`;
+
+  h += `<div class="menu-tabs"><span class="on">精選</span><span>厚酥蛋餅</span><span>吐司</span><span>飲品</span><span>漢堡</span></div>`;
+  h += `<div class="menu-sec"><div class="t-h4" style="margin-bottom:16px">厚酥蛋餅${grp?QB('S3'):''}</div>`;
+  const myItems = grp ? me().items : S.normalCart;
+  for(const [mid,m] of Object.entries(MENU)){
+    const inCart = myItems.filter(x=>x.mid===mid).reduce((a,x)=>a+x.qty,0); /* 已點品項：加號改成紅底＋數量（沿用現行 staging 店家頁） */
+    h += `<div class="menu-item"><div class="mi-body"><div class="mi-name">${m.name}</div><div class="mi-desc">${m.desc}</div>
+      <div class="mi-price">${m.orig?`<span class="sale">$${m.price}</span><s>$${m.orig}</s>`:`<span>$${m.price}</span>`}</div>
+      ${((!grp||leader) && m.tags.length)?`<div class="sale-tags">${m.tags.map(t=>`<span class="sale-tag">${t}</span>`).join('')}</div>`:''}</div>
+      <div class="photo ${m.ph}" aria-hidden="true"><img src="${m.img}" alt="" loading="lazy">${menuDisabled?'':`<button class="plus-fab${inCart?' has':''}${atLimit()?' lim':''}" ${atLimit()?'disabled':''} data-act="openItem" data-mid="${mid}" aria-label="加入${m.name}${inCart?`（購物車已有 ${inCart} 份）`:''}">${inCart?inCart:I.plus}</button>`}</div></div>`;
+  }
+  if(menuDisabled) h += `<p class="t-desc c-var" style="margin:0 0 16px">菜單的「＋」與加入購物車已隱藏（同「僅能瀏覽菜單」樣式）${QB('S4')}</p>`;
+  h += `</div></div>`;
+  h += bottomBar();
+  return h;
+}
+
+/* 每人上限：團員自己的小計已達上限（＝）時，不能再加購物車（規格：金額限制 › 5）；團長本人不受限 */
+function atLimit(){ return isGroup() && !isLeader() && S.group.limit && subtotal(me())>=S.group.limit; }
+function limitNotice(){ if(!atLimit() || isLocked() || isPast()) return ''; const over=subtotal(me())>S.group.limit;
+  return `<div class="notice">${I.alert}<div class="n-body"><div class="n-title">${over?'已超過':'已達'}每人上限 ${money(S.group.limit)}</div>${over?'團長調整了每人上限，':''}無法再加入新品項。可到購物車減少或刪除品項後再加點。</div></div>`; }
+function groupCard(){
+  const g=S.group, leader=isLeader();
+  const icInfo='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>';
+  const icEdit='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>';
+  const icShare='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v7h14v-7"/></svg>';
+  const pk=pickupText(), i=pk.indexOf('：');
+  /* 狀態提示放在團購卡片上方（流程稿 14／15／15-1，HungYu 調整） */
+  let h = statusNotice('store') + limitNotice();
+  h += `<div class="gcard"><div class="gc-body">
+      <div class="gc-top"><span class="tag tag-group">團購</span><span class="gc-name">${esc(g.name)}</span>${QB('S5',1)}</div>
+      <div class="gc-meta">${deadlineText()} 截止${g.limit?`・每人上限 ${money(g.limit)}`:''}</div>
+      <div class="gc-pick"><span class="c-var">${pk.slice(0,i)}</span><b>${pk.slice(i+1)}</b>${QB('S2')}</div></div>
+    <div class="gc-actions">${leader
+      ? `<button class="btn btn-m btn-outline" data-act="openEdit" ${isLocked()?'disabled':''}>${icEdit}修改團購資訊</button>`
+      : `<button class="btn btn-m btn-outline" data-act="openInfo">${icInfo}查看團購資訊</button>`}
+      <button class="btn btn-m btn-outline" data-act="openShare">${icShare}分享</button></div></div>`;
+  return h;
+}
+
+function statusNotice(where){
+  const leader=isLeader();
+  if(isLocked()){
+    /* 步驟二：解鎖入口只在步驟一（規格 購物車鎖定 › 4），所以不放按鈕（設計稿 15-2，Claude 提案待確認） */
+    if(where==='step2') return `<div class="notice lock">${I.lock}<div class="n-body"><div class="n-title">團購已鎖定，準備結帳</div>團員暫時無法修改品項。返回上一步仍維持鎖定，需要調整請在購物車解除鎖定。</div></div>`;
+    return `<div class="notice lock">${I.lock}<div class="n-body"><div class="n-title">團購已鎖定，團長正在結帳</div>
+      ${leader?'所有人都暫時無法修改品項。需要調整時，請先解除鎖定。':'目前無法修改品項，若需調整請與團長聯繫。'}
+      ${leader?`<div style="margin-top:8px"><button class="btn btn-s btn-outline" data-act="askUnlock">解除鎖定</button>${where==='store'?QB('Q13'):''}</div>`:''}</div></div>`;
+  }
+  if(isPast()){
+    return `<div class="notice">${I.alert}<div class="n-body"><div class="n-title">團購已截止（${deadlineText()}）</div>
+      ${leader?'團員已無法再修改品項，你仍可以調整。想讓大家繼續點餐，可以延長截止時間。':'目前無法修改品項，若需調整請與團長聯繫。'}
+      ${leader?`<div style="margin-top:8px"><button class="btn btn-s btn-outline" data-act="openEdit" data-focus="deadline">調整截止時間</button></div>`:''}</div></div>`;
+  }
+  return '';
+}
+
+function bottomBar(){
+  if(isGroup()){
+    const c=me(), n=itemCount(c);
+    return `<div class="bottom-bar"><button class="cart-btn" data-act="goCart"><span class="cnt">${n}</span><span>檢視揪團購物車</span><span>${money(subtotal(c))}</span></button></div>`;
+  }
+  const n=S.normalCart.reduce((a,x)=>a+x.qty,0);
+  if(!n) return '';
+  const sum=S.normalCart.reduce((a,x)=>a+MENU[x.mid].price*x.qty,0);
+  return `<div class="bottom-bar"><button class="cart-btn" data-act="noop"><span class="cnt">${n}</span><span>檢視購物車</span><span>${money(sum)}</span></button></div>`;
+}
+
+/* ================= Cart pages ================= */
+function renderCart(){
+  const leader=isLeader();
+  let h = `<div class="scroll"><div class="top-bar"><button class="icon-btn" data-act="goStore" aria-label="關閉">${I.close}</button><div class="tb-title t-label-l">${STORE}</div></div>`;
+  h += `<div class="sec" style="display:flex;flex-direction:column;gap:12px">`;
+  /* 團購資訊與取餐方式合併成一張卡（流程稿 10／13／15，提案紀錄③ 方案 1） */
+  h += statusNotice('cart') + limitNotice(); /* 狀態提示在團購卡片上方（流程稿 14／15）；已達上限見流程稿 10-1 */
+  { const g=S.group, pk=pickupText(), i=pk.indexOf('：');
+    h += `<div class="gcard cart-gcard"><div class="gc-body">
+      <div class="gc-top"><span class="tag tag-group">團購</span><span class="gc-name">${esc(g.name)}</span>${leader?QB('Q12',1):''}</div>
+      <div class="gc-meta">${deadlineText()} 截止${g.limit?`・每人上限 ${money(g.limit)}`:''}</div>
+      <div class="gc-pick"><span class="c-var">${pk.slice(0,i)}</span><b>${pk.slice(i+1)}</b></div></div>
+      <div class="gc-actions">${leader
+        ? `<button class="btn btn-m btn-outline" data-act="openEdit" ${isLocked()?'disabled':''}>${I.editS}修改團購資訊</button>`
+        : `<button class="btn btn-m btn-outline" data-act="openInfo">${I.infoS}查看團購資訊</button>`}
+        <button class="btn btn-m btn-outline" data-act="openShare">${I.shareS}分享</button></div></div>`; }
+  h += `</div>`;
+
+  h += `<div class="sec" style="padding-top:0"><h2 class="sec-title">點餐品項${QB('C1')}</h2>`;
+  for(const c of memberList()) h += groupCartBlock(c);
+  if(!isLocked() && (leader || !isPast())) h += `<button class="btn btn-l btn-outline btn-block" data-act="goStore" ${atLimit()?'disabled':''}>繼續加點</button>`;
+  h += `</div>`;
+
+  if(leader){
+    const total = memberList().reduce((a,c)=>a+subtotal(c),0);
+    h += `<div class="sec"><h2 class="sec-title">訂單備註</h2>
+      ${['需要免洗餐具或吸管等用品','環保袋','自備餐盒'].map(x=>`<div class="ui-row" style="min-height:40px;font-size:16px"><span class="cb"><i></i></span>${x}</div>`).join('')}
+      <div class="sum-row" style="margin-top:12px;font-size:16px"><span>小計（全團）${QB('C6')}</span><span>${money(total,true)}</span></div>
+      </div>
+      <div class="nav-row first"><div class="nr-top"><span class="nr-l">${I.coupon}<span class="nr-t">優惠</span></span>${I.chevRds}</div><div class="nr-sub">6 個優惠可使用</div></div>
+      <div class="nav-row"><div class="nr-top"><span class="nr-l">${I.pointBook}<span class="nr-t">點數折抵</span></span>${I.chevRds}</div></div>
+      <div class="nav-div"></div><div class="sec"><div class="sum-row" style="padding:0;font-weight:500"><span>服務費 (10%)</span><span>${money(Math.round(total*0.1),true)}</span></div>
+      <h2 class="sec-title" style="margin-top:20px">留言給店家</h2><textarea class="textarea" placeholder="請輸入特殊需求（請勿輸入#字）"></textarea></div>`;
+    const pay = total+Math.round(total*0.1);
+    const n = memberList().reduce((a,c)=>a+itemCount(c),0);
+    h += `</div><div class="bottom-bar"><button class="cart-btn" data-act="goStep2" ${n?'':'disabled'}><span class="cnt">${n}</span><span>前往付款</span><span>${money(pay,true)}</span></button></div>`;
+    return h;
+  }
+  h += `</div>`;
+  return h;
+}
+
+function groupCartBlock(c){
+  const leader=isLeader(), mine=c.id===meId();
+  const editable=canEditCart(c);
+  const sum=subtotal(c), lim=S.group.limit;
+  const showSum = mine || leader;
+  const showLimit = lim && ((!leader && mine) || (leader && !c.lead));
+  const over = showLimit && sum>lim;
+  const collapsed = S.collapsed[c.id];
+  let h = `<div class="gcart${mine?' self':''}${collapsed?' collapsed':''}">`;
+  h += `<div class="gcart-h" data-act="toggleCart" data-id="${c.id}">
+    <span class="nm">${mine?'我自己':esc(c.name)}</span>
+    ${c.lead&&!mine?'<span class="tag tag-lead">團長</span>':''}${c.visitor?'<span class="tag">訪客</span>':''}
+    <span style="color:var(--on_surface-variant)">${collapsed?I.chevR:I.chevD}</span>${(!mine&&!leader)?QB('Q3'):''}
+    <span class="sp"></span>
+    ${showLimit
+      ? `<span class="sumrow"><span class="sum">${money(sum)}${mine?QB('Q4'):''}</span><span class="lim${sum>=lim?' over':''}">/ 上限 ${money(lim)}</span></span>`
+      : `<span>${showSum?`<div class="sum">${money(sum,true)}${mine?QB('Q4'):''}</div>`:QB('Q2')}</span>`}
+
+  </div><div class="gcart-b">`;
+  if(over && mine) h += `<div class="notice" style="margin-top:12px">${I.alert}<div class="n-body">團長調整了每人上限，你已超過 ${money(lim)}，無法再加點，既有品項不受影響。</div></div>`;
+  if(!c.items.length) h += `<div class="gc-empty">${(S.clearedNotice && c.id===meId())?'團長更改了取餐設定，購物車已清空，請重新點餐。':'尚未點餐'}</div>`;
+  for(const x of c.items){
+    const m=MENU[x.mid];
+    h += `<div class="citem"><div class="photo sm ${m.ph}" aria-hidden="true"><img src="${m.img}" alt="" loading="lazy"></div><div class="ci-body">
+      <div class="ci-name"><span>${m.name}</span>${(!mine && !leader)?`<span class="ci-x">×${x.qty}</span>`:''}</div>
+      <div class="ci-opt">${esc(x.opts)}</div>
+      <div class="ci-row"><div class="ci-price">${money(m.price,true)}</div>`;
+    if(mine || leader){
+      const dis = !editable;
+      h += `<div class="ctr">${x.qty>1
+        ? `<button class="ctr-btn" data-act="dec" data-id="${c.id}" data-uid="${x.uid}" ${dis?'disabled':''} aria-label="減少">${I.minus}</button>`
+        : `<button class="ctr-btn" data-act="dec" data-id="${c.id}" data-uid="${x.uid}" ${dis?'disabled':''} aria-label="刪除">${I.trash}</button>`}
+        <span class="ctr-qty${dis?' dis':''}">${x.qty}</span>
+        <button class="ctr-btn add-primary" data-act="inc" data-id="${c.id}" data-uid="${x.uid}" ${(dis||(S.group.limit&&!c.lead&&sum>=S.group.limit))?'disabled':''} aria-label="增加">${I.plus}</button></div>${(leader&&!mine)?QB('Q1'):''}`;
+    }
+    h += `</div>`;
+    /* 跟著加點：提案紀錄④ 方案 2（HungYu 選定，待與同事確認）— 文字按鈕放在下一列左側，用分隔線和數量鈕隔開 */
+    if(!mine) h += `<div class="ci-follow"><button class="btn-text-primary ci-follow-btn" data-act="follow" data-mid="${x.mid}" ${(isLocked()||(!leader&&isPast())||atLimit())?'disabled':''}>${I.plus}跟著加點</button>${QB('Q8')}</div>`;
+    h += `</div></div>`;
+  }
+  h += `</div>`;
+  /* 移出團購：提案紀錄④ 方案 5（HungYu 選定，待與同事確認）— 每位團員卡片底部一顆，鎖定時停用 */
+  if(leader && !mine && !collapsed) h += `<div class="gcart-f"><button class="ci-follow-btn btn-text-quiet" data-act="askRemove" data-id="${c.id}" ${isLocked()?'disabled':''}>${I.userMinus}移出團購</button></div>`;
+  h += `</div>`;
+  return h;
+}
+
+function renderStep2(){
+  /* 購物車步驟二：沿用現行步驟二（Figma D-1 1449:96889），設計稿 15-2。
+     差異（Claude 提案，HungYu 待確認）：頂部鎖定提示（不放解除鎖定）、品項依團員分組、全團小計；付款方式與發票需重新設定 */
+  const g=S.group, list=memberList().filter(c=>c.items.length);
+  const total=list.reduce((a,c)=>a+subtotal(c),0), fee=Math.round(total*0.1);
+  const n=list.reduce((a,c)=>a+itemCount(c),0);
+  let h=`<div class="scroll"><div class="top-bar" style="border-bottom:0"><button class="icon-btn" data-act="goCart" aria-label="返回">${I.back}</button><div class="tb-title t-label-l">付款</div></div>
+  <div style="padding:0 16px;display:flex;flex-direction:column;gap:12px">${statusNotice('step2')}
+  <div class="s2-remind"><div class="s2-remind-h">${I.alert}提醒事項</div><div>訂餐5份以內，在取餐時間1小時內，您可以免費取消。 訂餐超過5份，在取餐前一天16:59前取消，不會收取費用。</div></div></div>
+  <div class="s2-sec"><div class="s2-h">取餐資訊</div><div style="font-size:16px;line-height:20px;margin-top:12px">${pickupText()}</div>
+    <label style="display:block;margin-top:16px;font-size:14px;line-height:20px">實名登記</label><input class="input" style="margin-top:4px" value="王小明">
+    <div class="ui-row" style="margin-top:8px;font-size:14px"><span class="cb"><i></i></span>同步更新會員資料</div></div>
+  <div class="s2-sec" style="padding-left:0;padding-right:0"><div class="s2-h" style="padding:0 16px">訂單內容</div>
+    <div class="s2-store"><img src="img/store-logo-mikan.png" alt=""><div><div class="s2-name">${STORE}</div><div class="c-var" style="font-size:14px;line-height:20px">${esc(g.name)}・${list.length} 人・共${n}個品項</div></div></div>`;
+  /* 每位團員一張外框卡（比照步驟一，HungYu 選定，待與同事／PM 確認） */
+  for(const c of list){
+    h+=`<div class="s2-card"><div class="s2-mem"><span>${c.id===meId()?'我自己':esc(c.name)}</span><span>${money(subtotal(c),true)}</span></div>`;
+    for(const x of c.items){ const m=MENU[x.mid];
+      h+=`<div class="s2-item"><span class="q">${x.qty}x</span><div style="flex:1;min-width:0"><div class="s2-name">${m.name}</div><div class="s2-opt">${esc(x.opts)}</div></div><span class="p">${money(m.price*x.qty,true)}</span></div>`; }
+    h+=`</div>`;
+  }
+  h+=`<div class="sum-row" style="margin:12px 16px 0;padding:16px 0 0;border-top:1px solid var(--outline-variant-bright);font-weight:500"><span>小計（全團）</span><span>${money(total,true)}</span></div></div>
+  <div class="s2-sec"><div class="sum-row" style="padding:0;font-weight:500"><span>服務費 (10%)</span><span>${money(fee,true)}</span></div></div>
+  <div class="s2-sec" style="padding:0">
+    <div class="nav-row" data-act="noop"><div class="nr-top"><span class="nr-l">${I.cash}<span class="nr-t">付款方式</span></span><span class="nr-l" style="gap:8px"><span style="font-size:14px;line-height:20px;color:var(--on_surface)">店內付款</span>${I.chevRds}</span></div></div>
+    <div class="nav-div"></div>
+    <div class="nav-row" data-act="noop"><div class="nr-top"><span class="nr-l">${I.receipt}<span class="nr-t">發票資料</span></span><span class="nr-l" style="gap:8px">${I.chevRds}</span></div></div></div>
+  <div class="sec"><div class="s2-h">留言給店家</div><div style="margin-top:16px;font-size:14px;line-height:20px;font-weight:500">蛋餅兩份要分開裝</div></div>
+  </div><div class="bottom-bar" style="display:flex;flex-direction:column;gap:16px"><div style="display:flex;justify-content:space-between;align-items:center;width:100%"><span style="font-size:16px;line-height:24px;font-weight:500">可獲得點數</span><span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600">30點${I.chevRds}</span></div>
+  <button class="btn btn-l btn-primary btn-block" data-act="submitOrder">送出訂單 ${money(total+fee,true)}</button></div>`;
+  return h;
+}
+
+/* 訂單已送出：沿用現行送單後畫面「訂單已送出_自取」（Figma D-1 1449:97112，設計稿 16）；成功動畫現行為 Lottie，此為靜態示意 */
+function renderDone(){
+  const g=S.group;
+  return `<div class="scroll" style="text-align:center"><div style="padding-top:28px"><svg width="200" height="200" viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="60" fill="none" stroke="var(--success,#65B741)" stroke-width="20"/><path d="M77 99l16 16 30-30" fill="none" stroke="var(--success,#65B741)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div style="font-size:18px;line-height:20px;font-weight:500;letter-spacing:.72px">訂單已送出！</div>
+  <div style="margin:20px 16px 0;border-top:1px solid var(--divider-variant,#F3F3F3)"></div>
+  <div style="margin-top:16px;display:flex;flex-direction:column;align-items:center;gap:8px"><span style="font-size:18px;line-height:20px;font-weight:500;letter-spacing:.72px">${g.type}</span><span style="font-size:30px;line-height:36px;font-weight:500">${dateStr(g.date)} ${t2s(g.time)}</span>
+  <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px 4px 4px;border-radius:14px;background:var(--secondary);color:var(--on_secondary);font-size:12px;line-height:16px;font-weight:500">${I.alert.replace(/width="20" height="20"/,'width="16" height="16"')}店內付款</span></div>
+  <div style="margin:48px 8px 0;border-top:1px solid var(--divider-variant,#F3F3F3)"></div>
+  <div style="display:flex;justify-content:space-between;padding:12px 16px;font-size:18px;line-height:20px;font-weight:500;letter-spacing:.72px"><span>訂單編號</span><span>166</span></div>
+  <div style="display:flex;justify-content:space-between;padding:12px 16px;font-size:18px;line-height:20px;font-weight:500;letter-spacing:.72px"><span>訂單金額</span><span>${money(S.doneTotal||0,true)}</span></div>
+  <div style="padding:12px 16px"><button class="btn btn-l btn-primary btn-block" data-act="goRecord">前往訂購紀錄</button></div></div>`;
+}
+
+/* 訂購紀錄頁（團長）：沿用現行頁（Figma E-1 1463:50716，設計稿 16-1）。
+   差異：訂單內容採提案紀錄⑥ 方案 A（姓名標籤＋已付款 checkbox，HungYu 選定，待與同事／PM 確認）；「店家將在營業時間確認訂單」放店名下方（HungYu 調整）；資訊卡加「團購」列（Claude 提案） */
+function renderRecord(){
+  const g=S.group, list=S.doneCarts||[];
+  const row=(l,r)=>`<div style="display:flex;justify-content:space-between;gap:16px"><span style="flex:none">${l}</span><span style="text-align:right">${r}</span></div>`;
+  let h=`<div class="scroll"><div class="top-bar" style="border-bottom:0"><button class="icon-btn" data-act="afterSubmit" aria-label="返回">${I.back}</button><div class="tb-title t-label-l">訂購紀錄頁</div></div>
+  <div style="display:grid;gap:20px;padding-bottom:24px">
+  <div class="rec-card" style="align-items:center;text-align:center;gap:16px"><div><svg width="60" height="60" viewBox="0 0 60 60" aria-hidden="true"><path d="M2 20h10M0 28h12M4 36h8" stroke="var(--on_surface)" stroke-width="2" stroke-linecap="round"/><path d="M16 6h34v48l-6-4-6 4-5-4-6 4-6-4-5 4z" fill="var(--secondary)"/><circle cx="33" cy="20" r="9" fill="var(--success)" stroke="#FFFFFF" stroke-width="2"/><path d="M29 20l3 3 5-6" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="24" y="36" width="18" height="4" rx="2" fill="#FFFFFF"/></svg><div class="s2-h">訂單送出</div></div>
+    <div style="display:grid;gap:4px;font-weight:500"><span style="font-size:14px;color:var(--on_surface-variant-bright)">取餐時間</span><span style="font-size:20px;line-height:24px">${dateStr(g.date)} ${t2s(g.time)}</span><span style="font-size:16px">${g.type}</span></div></div>
+  <div style="display:grid;gap:16px"><div class="s2-h" style="padding:0 32px">訂單狀態</div>
+    <div style="display:flex;gap:8px;margin:0 32px"><div style="flex:1;display:grid;gap:8px"><div style="height:4px;border-radius:360px;background:var(--primary)"></div><div style="text-align:center;font-size:12px;line-height:16px;color:var(--on_surface-variant)"><b style="font-weight:500">訂單送出</b><br>剛剛</div></div><div style="flex:1"><div style="height:4px;border-radius:360px;background:var(--disabled,#E0E0E0)"></div></div></div>
+    </div>
+  <div class="rec-card" style="gap:8px;font-size:14px;line-height:20px;font-weight:500">${row('訂單編號','<b style="font-size:18px;font-weight:500">166</b>')}${row('團購',`${esc(g.name)}（${list.length} 人）`)}${row('付款方式','店內付款 (尚未付款)')}${row('實名登記','王小明')}${row('電話','0912345678')}</div>
+  <div style="border-top:2px solid var(--divider-variant,#F3F3F3);padding-top:18px;display:grid;gap:20px"><div style="display:grid;gap:4px"><div style="padding:0 16px;display:flex;align-items:center;gap:8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="color: var(--on_surface); flex: none" data-ds="Icon RegularStore"><path d="M 3.155 0 C 2.786 0 2.454 0.226 2.318 0.569 L 0.063 6.269 C 0.021 6.374 0 6.487 0 6.6 C 0 7.538 0.439 8.369 1.122 8.903 L 1.122 17.06 C 1.122 17.557 1.525 17.96 2.022 17.96 L 16.144 17.96 C 16.641 17.96 17.044 17.557 17.044 17.06 L 17.044 8.759 C 17.629 8.226 17.996 7.458 17.996 6.6 C 17.996 6.487 17.975 6.375 17.933 6.27 L 15.688 0.57 C 15.553 0.226 15.221 0 14.851 0 L 3.155 0 Z M 15.244 9.515 C 15.187 9.518 15.129 9.52 15.071 9.52 C 14.285 9.52 13.572 9.212 13.047 8.71 C 12.522 9.212 11.809 9.52 11.022 9.52 C 10.236 9.52 9.523 9.212 8.998 8.71 C 8.473 9.212 7.76 9.52 6.973 9.52 C 6.187 9.52 5.474 9.212 4.949 8.71 C 4.424 9.212 3.711 9.52 2.924 9.52 C 2.924 9.52 2.923 9.52 2.922 9.52 L 2.922 16.16 L 15.244 16.16 L 15.244 9.515 Z M 2.508 7.642 C 2.636 7.692 2.777 7.72 2.924 7.72 C 3.552 7.72 4.049 7.221 4.049 6.6 C 4.049 6.103 4.452 5.7 4.949 5.7 C 5.446 5.7 5.849 6.103 5.849 6.6 C 5.849 7.221 6.346 7.72 6.973 7.72 C 7.601 7.72 8.098 7.221 8.098 6.6 C 8.098 6.103 8.501 5.7 8.998 5.7 C 9.495 5.7 9.898 6.103 9.898 6.6 C 9.898 7.221 10.395 7.72 11.022 7.72 C 11.65 7.72 12.147 7.221 12.147 6.6 C 12.147 6.103 12.55 5.7 13.047 5.7 C 13.544 5.7 13.947 6.103 13.947 6.6 C 13.947 7.221 14.444 7.72 15.071 7.72 C 15.648 7.72 16.115 7.298 16.187 6.747 L 14.238 1.8 L 3.767 1.8 L 1.809 6.748 C 1.854 7.09 2.051 7.383 2.333 7.555 C 2.395 7.578 2.453 7.607 2.508 7.642 Z" fill="currentColor" fill-rule="evenodd" transform="matrix(1 0 0 1 3 3)"></path><path d="M 3.155 0 C 2.786 0 2.454 0.226 2.318 0.569 L 0.063 6.269 C 0.021 6.374 0 6.487 0 6.6 C 0 7.538 0.439 8.369 1.122 8.903 L 1.122 17.06 C 1.122 17.557 1.525 17.96 2.022 17.96 L 16.144 17.96 C 16.641 17.96 17.044 17.557 17.044 17.06 L 17.044 8.759 C 17.629 8.226 17.996 7.458 17.996 6.6 C 17.996 6.487 17.975 6.375 17.933 6.27 L 15.688 0.57 C 15.553 0.226 15.221 0 14.851 0 L 3.155 0 Z M 15.244 9.515 C 15.187 9.518 15.129 9.52 15.071 9.52 C 14.285 9.52 13.572 9.212 13.047 8.71 C 12.522 9.212 11.809 9.52 11.022 9.52 C 10.236 9.52 9.523 9.212 8.998 8.71 C 8.473 9.212 7.76 9.52 6.973 9.52 C 6.187 9.52 5.474 9.212 4.949 8.71 C 4.424 9.212 3.711 9.52 2.924 9.52 C 2.924 9.52 2.923 9.52 2.922 9.52 L 2.922 16.16 L 15.244 16.16 L 15.244 9.515 Z M 2.508 7.642 C 2.636 7.692 2.777 7.72 2.924 7.72 C 3.552 7.72 4.049 7.221 4.049 6.6 C 4.049 6.103 4.452 5.7 4.949 5.7 C 5.446 5.7 5.849 6.103 5.849 6.6 C 5.849 7.221 6.346 7.72 6.973 7.72 C 7.601 7.72 8.098 7.221 8.098 6.6 C 8.098 6.103 8.501 5.7 8.998 5.7 C 9.495 5.7 9.898 6.103 9.898 6.6 C 9.898 7.221 10.395 7.72 11.022 7.72 C 11.65 7.72 12.147 7.221 12.147 6.6 C 12.147 6.103 12.55 5.7 13.047 5.7 C 13.544 5.7 13.947 6.103 13.947 6.6 C 13.947 7.221 14.444 7.72 15.071 7.72 C 15.648 7.72 16.115 7.298 16.187 6.747 L 14.238 1.8 L 3.767 1.8 L 1.809 6.748 C 1.854 7.09 2.051 7.383 2.333 7.555 C 2.395 7.578 2.453 7.607 2.508 7.642 Z" fill="currentColor" fill-rule="evenodd" transform="matrix(1 0 0 1 3 3)"></path></svg><span class="s2-h">${STORE}</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="color: var(--on_surface); flex: none" data-ds="Icon RegularChevronRight"><path d="M 7.3 6 L 1.7 0.3 C 1.3 -0.1 0.7 -0.1 0.3 0.3 C -0.1 0.7 -0.1 1.3 0.3 1.7 L 5.2 6.6 L 0.3 11.5 C 0.1 11.7 0 11.9 0 12.2 C 0 12.8 0.4 13.2 1 13.2 C 1.3 13.2 1.5 13.1 1.7 12.9 L 7.4 7.2 C 7.7 7 7.7 6.4 7.3 6 Z" fill="currentColor" fill-rule="nonzero" transform="matrix(1 0 0 1 9 5.300)"></path></svg></div><div style="padding:0 16px;font-size:14px;line-height:20px;color:var(--on_surface-variant)">店家將在營業時間確認訂單</div></div>
+  <div class="rec-card" style="padding:16px 0;gap:0"><div class="s2-h" style="padding:0 16px 4px">訂單內容</div>`;
+  list.forEach((c,i)=>{ const sum=c.items.reduce((a,x)=>a+MENU[x.mid].price*x.qty,0);
+    h+=`${i?'<div style="margin:12px 16px 0;border-top:1px solid var(--outline-variant-bright)"></div>':''}<div style="padding:12px 0 0"><div style="display:flex;align-items:center;gap:8px;padding:0 16px 4px;font-size:14px;font-weight:500"><span class="tag tag-group">${esc(c.lead?c.name.replace('（團長）',''):c.name)}</span><span class="c-var">${money(sum,true)}</span><span style="flex:1"></span>${c.lead?'<span class="t-desc c-var">團長本人</span>':`<button class="ui-row" data-act="togglePaid" data-id="${c.id}" style="border:0;background:none;padding:0;gap:4px;font-size:14px;color:var(--on_surface)"><span class="cb${S.paid[c.id]?' on':''}"><i></i></span>已付款</button>`}</div>`;
+    for(const x of c.items){ const m=MENU[x.mid]; h+=`<div style="display:flex;align-items:flex-start;gap:12px;padding:4px 16px;font-size:14px;line-height:20px;font-weight:500"><span style="width:28px">${x.qty}x</span><span style="flex:1;display:grid;gap:4px"><span>${m.name}</span>${x.opts?`<span class="s2-opt" style="margin:0;font-weight:400">${esc(x.opts)}</span>`:''}</span><span>${money(m.price*x.qty,true)}</span></div>`; }
+    h+=`</div>`; });
+  /* 總計可展開（沿用現行 Figma E-1 1130:48228）；本團未選訂單備註、未用優惠與點數 */
+  const sub=list.reduce((a,c)=>a+c.items.reduce((b,x)=>b+MENU[x.mid].price*x.qty,0),0);
+  const r14=(l,r)=>`<div style="display:flex;justify-content:space-between;font-size:14px;line-height:20px;font-weight:500"><span>${l}</span><span>${r}</span></div>`;
+  h+=`<div style="margin:12px 16px 0;display:grid;gap:16px">${S.recOpen?`<div style="border-top:1px solid var(--outline-variant-bright)"></div>${r14('小計（全團）',money(sub,true))}${r14('服務費',money(Math.round(sub*0.1),true))}<div style="display:grid;gap:8px"><span class="s2-h">留言給店家</span><span style="font-size:14px;font-weight:500">蛋餅兩份要分開裝</span></div><div style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:500">可獲得點數</span><span style="font-weight:600">30點</span></div>`:''}
+    <button data-act="toggleRec" style="border:0;border-top:1px solid var(--outline-variant-bright);background:none;padding:16px 0 0;display:flex;align-items:center;gap:8px;font-family:inherit;color:inherit;text-align:left" class="s2-h" aria-expanded="${S.recOpen?'true':'false'}"><span>總計</span><span style="flex:1">${money(S.doneTotal||0,true)}</span><span style="display:inline-flex;${S.recOpen?'transform:rotate(180deg)':''}">${I.chevD}</span></button></div></div></div></div>
+  </div><div class="bottom-bar" style="display:flex;flex-direction:column;gap:12px;text-align:center"><span class="t-body-m c-var">若需異動訂單請先取消訂單後重新下單</span><button class="btn btn-l btn-outline-primary btn-block" data-act="noop">取消訂單</button></div>`;
+  return h;
+}
+
+/* ================= Overlays ================= */
+function dialogHTML(){
+  const d=S.dialog; if(!d) return '';
+  const g=S.group;
+  const wrap = (inner,closable) => `<div class="mask" ${closable?'data-act="closeDialog"':''}></div><div class="dialog-wrap" ${closable?'data-act="closeDialog"':''}><div class="dialog" role="dialog" aria-modal="true" data-act="stop" data-keep="dlg">${inner}</div></div>`;
+  const simple = (title,body,primary,secondary) => wrap(`<div class="d-text"><div class="t-h4">${title}</div><div class="t-body-l">${body}</div></div>
+    <div class="d-actions">${primary}${secondary||''}</div>`,true);
+  const infoList = (withLeader) => `<dl class="info-list">
+    <div class="il"><dt>團名</dt><dd>${esc(g.name)}</dd></div>
+    <div class="il"><dt>店名</dt><dd>${STORE}</dd></div>
+    <div class="il"><dt>取餐</dt><dd>${pickupText()}</dd></div>
+    ${g.limit?`<div class="il"><dt>每人上限</dt><dd>${money(g.limit)}</dd></div>`:''}
+    <div class="il"><dt>截止</dt><dd>${deadlineText()}</dd></div>
+    ${withLeader?`<div class="il"><dt>團長</dt><dd>${esc(S.carts.lead.name)}</dd></div>`:''}</dl>`;
+  switch(d){
+    case 'blacklist': return simple('無法發起揪團','你目前沒有在這家店發起揪團的權限，仍可以照常點餐。如有疑問，請聯繫店家。',`<button class="btn btn-l btn-primary" data-act="closeDialog">我知道了</button>`);
+    case 'share': return wrap(`<button class="icon-btn d-close" data-act="closeDialog" aria-label="關閉">${I.close}</button>
+      <div class="d-text"><div class="t-h4">邀請朋友一起點</div><div class="t-body-m c-var">朋友打開連結就能加入「${esc(g.name)}」</div></div>
+      <div style="display:grid;place-items:center">${qrSVG()}<div class="t-desc c-bright" style="margin-top:4px">示意圖，非真實 QR Code</div></div>
+      <div class="field"><div class="field-label">團購連結</div><input class="input" readonly value="https://iding.tw/g/7KQ2M9"></div>
+      <div class="d-actions"><button class="btn btn-l btn-primary" data-act="copyLink">複製連結</button></div>
+      <p class="t-desc c-var" style="margin:0;text-align:center">App 版改用系統原生分享${QB('S6',1)}</p>`,true);
+    case 'identity': {
+      const loggedIn = S.dlg.loggedIn;
+      const who = S.dlg.who||'visitor';
+      const name = S.dlg.vname||'';
+      const nn = loggedIn && S.dlg.noName, mname = S.dlg.mname||'';
+      const ok = (loggedIn && (!nn || mname.trim().length>0)) || (!loggedIn && (who==='member' || name.trim().length>0));
+      return wrap(`<div class="d-text"><div class="t-h4">加入團購</div></div>
+        ${infoList(true)}
+        ${loggedIn?(nn?`<div style="display:flex;flex-direction:column;gap:12px"><p class="t-body-m" style="margin:0">你的會員資料還沒有姓名，請輸入在團購中要顯示的名字，方便團長辨認。</p>${nameField('mname',mname,S.dlg.mtouched,'只用於這次團購，不會更改會員資料','你的名字'+QB('N1'))}</div>`:`<p class="t-body-m" style="margin:0">你將以「${esc(S.carts.mei.name)}」的名字加入團購，團長和團員會看到這個名字。</p>`):`<div><div class="t-label-m" style="margin-bottom:4px">選擇加入身份${QB('L2')}</div>
+          <div class="radio-row" data-act="pickWho" data-v="member"><span class="radio${who==='member'?' on':''}"><i></i></span>會員（前往登入／註冊）</div>
+          <div class="radio-row" data-act="pickWho" data-v="visitor"><span class="radio${who==='visitor'?' on':''}"><i></i></span>訪客</div>
+          ${who==='visitor'?`<div class="field" style="margin-top:4px"><input class="input${S.dlg.vtouched&&!name.trim()?' err':''}" id="vname" maxlength="50" placeholder="請輸入你的名字" value="${esc(name)}"><div style="display:flex;justify-content:space-between">${S.dlg.vtouched&&!name.trim()?'<span class="field-err">請輸入你的名字</span>':'<span></span>'}<span class="field-help">${name.length}/50</span></div></div>`:''}</div>`}
+        <div class="d-actions"><button class="btn btn-l btn-primary" data-act="joinGroup" ${ok?'':'disabled'}>${(!loggedIn&&who==='member')?'前往登入':'開始訂購'}</button>
+        <button class="btn btn-l btn-outline" data-act="joinLater">稍後再說</button></div>`,false);
+    }
+    case 'linkClosed': return wrap(`<div class="d-text"><div class="t-h4">${S.dlg.locked?'團購正在結帳中':'團購已截止'}</div><div class="t-body-l">${S.dlg.locked?`「${esc(g.name)}」正在結帳中，已鎖定購物車無法再加入。你仍可以用一般身份瀏覽店家`:`「${esc(g.name)}」已過截止時間，無法再加入。你仍可以一般身份瀏覽店家。`}</div></div>
+      <div class="d-actions"><button class="btn btn-l btn-primary" data-act="toStoreNormal">前往店家頁</button></div>`,false);
+    case 'linkInvalid': return wrap(`<div class="d-text"><div class="t-h4">團購連結已失效</div><div class="t-body-l">這個團購可能已送出訂單或被取消。你仍可以一般身份瀏覽店家。</div></div>
+      <div class="d-actions"><button class="btn btn-l btn-primary" data-act="toStoreNormal">前往店家頁</button></div>`,false);
+    case 'linkOther': return wrap(`<div class="d-text"><div class="t-h4">你已在這間店的其他團購中</div><div class="t-body-l">同一間店一次只能參加一個團購。想加入新的團購，請先退出${S.dlg.asLeader?'（取消）':''}原本的團購。</div></div>
+      <div class="d-actions"><button class="btn btn-l btn-primary" data-act="backToMyGroup">回到原本的團購</button></div>`,false);
+    case 'info': return wrap(`<button class="icon-btn d-close" data-act="closeDialog" aria-label="關閉">${I.close}</button>
+      <div class="d-text"><div class="t-h4">團購資訊</div></div>${infoList(true)}
+      <div class="d-actions"><button class="btn btn-l btn-outline-primary" data-act="askExit" ${(isLocked()||isPast())?'disabled':''}>退出團購</button>${(isLocked()||isPast())?`<span class="t-desc" style="text-align:center;color:var(--on_warning-container)">${isLocked()?'團購正在結帳中':'團購已截止'}，目前無法退出。若需調整請與團長聯繫。</span>`:''}</div>
+      ${(isLocked()||isPast())?`<p class="t-desc c-var" style="margin:0;text-align:center">團購已${isLocked()?'鎖定':'截止'}，暫時無法退出</p>`:''}`,true);
+    case 'exit': return simple('確定要退出團購？','你的購物車會一併刪除。之後想再加入，需重新開啟團購連結。',`<button class="btn btn-l btn-primary" data-act="doExit">退出團購</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">取消</button>`);
+    case 'cancelGroup': return simple('確定要取消這個團購？','全團的購物車都會刪除，團購連結也會失效。',`<button class="btn btn-l btn-primary" data-act="doCancelGroup">取消團購</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">返回</button>`);
+    case 'remove': { const c=S.carts[S.dlg.id]; return simple(`將${esc(c.name)}移出團購？`,`${esc(c.name)}的購物車會一併刪除，對方需重新開啟連結才能再加入。`,`<button class="btn btn-l btn-primary" data-act="doRemove">移出團購</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">取消</button>`); }
+    case 'unlock': return simple('解除鎖定？','解除後，所有人都可以再修改品項。準備好後，再次前往付款會重新鎖定。',`<button class="btn btn-l btn-primary" data-act="doUnlock">解除鎖定</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">取消</button>`);
+    case 'unlockPast': return simple('已過截止時間','團員目前無法修改品項。要延長截止時間，讓大家繼續點餐嗎？',`<button class="btn btn-l btn-primary" data-act="unlockEdit">修改截止時間</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">不修改</button>`);
+    case 'menuChanged': return simple('儲存後會清空購物車','新的取餐方式或時間對應的菜單不同，儲存後全團的購物車都會清空，需要大家重新點餐。',`<button class="btn btn-l btn-primary" data-act="saveEditConfirmed">儲存並清空</button>`,`<button class="btn btn-l btn-outline" data-act="cancelMenuChange">取消</button>`);
+    case 'exitFail': return simple('通知','後端錯誤訊息（錯誤代碼）',`<button class="btn btn-l btn-primary" data-act="exitFailOk">確認</button>`);
+    case 'stockOut': return simple('品項已自動移除',`以下品項因庫存不足或停售，系統已自動從揪團購物車中移除。<div class="so-list">${S.dlg.rows.map(r=>`<div><b>${esc(r.who)}</b><span>${esc(r.items)}</span></div>`).join('')}</div>`,`<button class="btn btn-l btn-primary" data-act="stockPick">選擇其他品項</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">確認</button>`);
+    case 'unlockFail': return simple('通知','後端錯誤訊息（錯誤代碼）',`<button class="btn btn-l btn-primary" data-act="closeDialog">確認</button>`);
+    case 'cancelFail': return simple('通知','後端錯誤訊息（錯誤代碼）',`<button class="btn btn-l btn-primary" data-act="closeDialog">確認</button>`);
+    case 'joinFail': return simple('通知','後端錯誤訊息（錯誤代碼）',`<button class="btn btn-l btn-primary" data-act="joinFailOk">確認</button>`);
+    case 'pickupInvalid': return simple('取餐方式與時間需要重新設定', '店家調整了營業設定，原本的取餐方式或時間目前無法使用。'+(isLeader()?'請重新設定，團員才能繼續點餐。':'請通知團長重新設定，完成後即可繼續點餐。'), isLeader()?`<button class="btn btn-l btn-primary" data-act="openEditFromDlg">調整取餐方式與時間</button>`:`<button class="btn btn-l btn-primary" data-act="closeDialog">我知道了</button>`, isLeader()?`<button class="btn btn-l btn-outline" data-act="closeDialog">稍後再說</button>`:undefined);
+    case 'syncLocked': return simple('團長正在結帳','團購剛剛被鎖定，暫時無法修改品項。若需調整，請與團長聯繫。',`<button class="btn btn-l btn-primary" data-act="closeDialog">我知道了</button>`) ;
+    case 'cleared': return simple('購物車已清空',`團長更改了取餐方式與時間，菜單內容不同，你的購物車已清空，請重新點餐。<div class="t-desc c-var" style="margin-top:8px">新的取餐：${esc(pkText(S.group,true).replace('：',' '))}</div>`,`<button class="btn btn-l btn-primary" data-act="closeDialog">重新點餐</button>`);
+    case 'soldout': return simple('品項已自動移除', isLeader()?'因庫存不足，系統已自動移除：<br>・小美的「經典起司加有機草莓格子鬆餅」<br>・阿明的「塔香蛋餅」':'因庫存不足，系統已自動移除你的「經典起司加有機草莓格子鬆餅」。',`<button class="btn btn-l btn-primary" data-act="closeDialog">確認</button>`);
+    case 'submitted': return simple('訂單已送出','店家將在營業時間確認訂單。團購已結束，大家的團購身份會一併解除。',`<button class="btn btn-l btn-primary" data-act="afterSubmit">回到店家頁</button>`);
+  }
+  return '';
+}
+
+function qrSVG(){
+  // 固定亂數的示意 QR，僅供版面參考
+  let seed=7, rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280};
+  const n=21,s=6; let r='';
+  const finder=(x,y)=>`<rect x="${x*s}" y="${y*s}" width="${7*s}" height="${7*s}" fill="#333"/><rect x="${(x+1)*s}" y="${(y+1)*s}" width="${5*s}" height="${5*s}" fill="#fff"/><rect x="${(x+2)*s}" y="${(y+2)*s}" width="${3*s}" height="${3*s}" fill="#333"/>`;
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){ const inF=(x<8&&y<8)||(x>12&&y<8)||(x<8&&y>12); if(!inF && rnd()>.5) r+=`<rect x="${x*s}" y="${y*s}" width="${s}" height="${s}" fill="#333"/>`; }
+  return `<svg width="140" height="140" viewBox="-6 -6 138 138" role="img" aria-label="團購連結 QR Code 示意"><rect x="-6" y="-6" width="138" height="138" fill="#fff"/>${r}${finder(0,0)}${finder(14,0)}${finder(0,14)}</svg>`;
+}
+
+function sheetHTML(){
+  if(!S.sheet) return '';
+  if(S.sheet==='item') return itemSheet();
+  if(S.sheet==='storePickup') return storePickupSheet();
+  return groupSheet();
+}
+
+/* 可選日期：取餐＝有可選時段的日期；截止＝今天～取餐日期 */
+function selectableDates(kind){
+  const f=S.sh.form||{}, out=[];
+  if(kind==='pickup') return pkDates(S.sh.tmp,S.sheet!=='storePickup');
+  DATES.forEach((_,i)=>{ if(i<=f.date && deadlineTimes(i,f).length>0) out.push(i); });
+  return out;
+}
+const I_CAL='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>';
+function dateRow(kind,sel){
+  const act = kind==='pickup'?'tmpDate':'tmpDDate';
+  return `<div class="date-row" data-keep="dr-${kind}">
+    <span class="cal-pin"><button class="cal-chip" data-act="openCal" data-for="${kind}">${I_CAL}<span>檢視月曆</span></button></span>
+    ${selectableDates(kind).map(i=>{const d=DATES[i];return `<button class="date-chip${sel===i?' on':''}" data-act="${act}" data-i="${i}" aria-pressed="${sel===i}"><span class="d1">${d.label}</span><span class="d2">${d.chip}</span></button>`;}).join('')}
+  </div>`;
+}
+function timeList(kind,list,sel){
+  const act = kind==='pickup'?'tmpTime':'tmpDTime';
+  if(!list.length) return `<div class="time-empty">這天沒有可選的時間</div>`;
+  return `<div class="time-list" data-keep="tl-${kind}">${list.map(m=>`<button class="time-opt${sel===m?' on':''}" data-act="${act}" data-m="${m}" aria-pressed="${sel===m}">${t2s(m)}</button>`).join('')}</div>`;
+}
+function calendarHTML(){
+  const c=S.sh.cal; if(!c) return '';
+  const kind=c.for, ok=new Set(selectableDates(kind)), sel = kind==='pickup'?S.sh.tmp.date:S.sh.tmp.dDate;
+  const first=new Date(c.y,c.m,1), start=new Date(c.y,c.m,1-first.getDay());
+  let cells='';
+  for(let k=0;k<42;k++){
+    const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+k);
+    if(k>=35 && d.getMonth()!==c.m) break;
+    const i=dateIdx(d.getFullYear(),d.getMonth(),d.getDate()), inMonth=d.getMonth()===c.m, can=inMonth&&ok.has(i);
+    cells+=`<button class="cal-day${can&&i===sel?' on':''}" ${can?`data-act="calPick" data-i="${i}"`:'disabled'} aria-label="${d.getMonth()+1}月${d.getDate()}日"><span>${d.getDate()}</span></button>`;
+  }
+  const navBtn=(dm,label,svg)=>`<button class="cal-nav" data-act="calNav" data-dm="${dm}" aria-label="${label}">${svg}</button>`;
+  const cl='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  const cr='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
+  const dl='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5l-7 7 7 7M19 5l-7 7 7 7"/></svg>';
+  const dr='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5l7 7-7 7M5 5l7 7-7 7"/></svg>';
+  return `<div class="mask2" data-act="closeCal"></div><div class="sheet2" role="dialog" aria-modal="true" aria-label="選擇日期">
+    <div class="sheet-h"><span style="width:24px"></span><span class="sh-title"></span><button class="icon-btn" data-act="closeCal" aria-label="關閉月曆">${I.close}</button></div>
+    <div class="cal"><div class="cal-head">${navBtn(-12,'上一年',dl)}${navBtn(-1,'上個月',cl)}<span class="cal-title">${c.y} ${c.m+1}月</span>${navBtn(1,'下個月',cr)}${navBtn(12,'下一年',dr)}</div>
+      <div class="cal-week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+      <div class="cal-grid">${cells}</div></div></div>`;
+}
+
+function pickupBody(group){
+  const t=S.sh.tmp;
+  let h=(group && S.sheet==='edit' && S.pickupInvalid && !S.sh.pickupTouched)?`<div style="padding:8px 12px;border-radius:8px;background:var(--warning-container);color:var(--on_warning-container);font-size:12px;line-height:16px">原設定「${esc(pkText(S.group,true))}」已無法使用，請重新選擇。</div>`:'';
+  h+=`<div class="segmented">${PK_TYPES.map(x=>`<span class="${t.type===x?'on':''}" data-act="pkType" data-v="${x}">${x}</span>`).join('')}</div>`;
+  if(t.type==='外送'){
+    return h+`<div class="notice">${I.alert}<div class="n-body">您設定的取餐地址，超出店家的外送距離，請選擇其他取餐方式或重設地址。</div></div>
+      <button class="btn btn-l btn-outline btn-block" data-act="setAddr">設定地址</button>`;
+  }
+  if(t.type==='內用'){
+    if(group) h+=`<div class="rule">團購的內用只提供「預約訂餐」（候位中／已有座位不適用於事先揪團）${QB('Q20',1)}</div>`;
+    else h+=`<div style="display:flex;gap:16px">${['預約訂餐','候位中','已有座位'].map(v=>`<div class="radio-row" data-act="pkDine" data-v="${v}" style="font-size:14px"><span class="radio${t.dine===v?' on':''}"><i></i></span>${v}</div>`).join('')}</div>`;
+    if(!group && t.dine!=='預約訂餐') return h;
+  }
+  h+=dateRow('pickup',t.date);
+  if(t.type==='宅配') return h;
+  const list = group?pickupTimes(t.date):storeTimes(t.date);
+  if(!group && t.type==='自取' && t.date===0) h+=`<button class="time-opt${t.asap?' on':''}" data-act="pkAsap" style="width:100%">儘快 (10-15分鐘)</button>`;
+  h+=timeList('pickup',list,t.asap&&!group?null:t.time);
+  return h;
+}
+function pkCanConfirm(){ const t=S.sh.tmp; return t.type!=='外送'; }
+function storePickupSheet(){
+  return `<div class="mask" data-act="closeSheet"></div><div class="sheet sheet-pk" role="dialog" aria-modal="true" aria-label="取餐方式與時間">
+    <div class="sheet-h"><span style="width:24px"></span><span class="sh-title"></span><button class="icon-btn" data-act="closeSheet" aria-label="關閉">${I.close}</button></div>
+    <div class="sheet-b" data-keep="sb" style="gap:16px">${pickupBody(false)}</div>
+    <div class="sheet-f"><button class="btn btn-l btn-primary btn-block" data-act="confirmStorePickup" ${pkCanConfirm()?'':'disabled'}>確認</button></div></div>`+calendarHTML();
+}
+
+function groupSheet(){
+  const f=S.sh.form, view=S.sh.view||'main', edit=S.sheet==='edit';
+  let h=`<div class="mask" data-act="closeSheet"></div><div class="sheet${view==='pickup'?' sheet-pk':''}" role="dialog" aria-modal="true">`;
+  if(view==='pickup'){
+    const times=pickupTimes(S.sh.tmp.date);
+    h+=`<div class="sheet-h"><button class="icon-btn" data-act="sheetBack" aria-label="返回">${I.back}</button><span class="sh-title">取餐方式與時間</span><span style="width:24px"></span></div>
+      <div class="sheet-b" data-keep="sb" style="gap:16px">${pickupBody(true)}
+      <div class="rule">今天最早可選 ${t2s(pickupTimes(0)[0])}：現在 ${t2s(NOW)} ＋ 2 × 最短預約 ${MIN_PREP} 分，進位至 5 分；隱藏「儘快」${QB('G3')}</div></div>
+      <div class="sheet-f"><button class="btn btn-l btn-primary btn-block" data-act="confirmPickup" ${pkCanConfirm()?'':'disabled'}>確認</button></div></div>`;
+    return h+calendarHTML();
+  }
+  if(view==='deadline'){
+    const tmp=S.sh.tmp, list=deadlineTimes(tmp.dDate,f);
+    h+=`<div class="sheet-h"><button class="icon-btn" data-act="sheetBack" aria-label="返回">${I.back}</button><span class="sh-title">截止日期與時間${QB('G5',1)}</span><span style="width:24px"></span></div>
+      <div class="sheet-b" data-keep="sb" style="gap:16px">
+      ${dateRow('deadline',tmp.dDate)}
+      ${timeList('deadline',list,tmp.dTime)}
+      <div class="rule">可選範圍：現在＋10 分（${t2s(Math.ceil((NOW+10)/5)*5)}）～ 取餐時間 − 最短預約（${dateStr(f.date)} ${t2s(f.time-MIN_PREP)}）；晚於取餐日的日期不出現在日期列，月曆中顯示為不可選</div></div>
+      <div class="sheet-f"><button class="btn btn-l btn-primary btn-block" data-act="confirmDeadline">確認</button></div></div>`;
+    return h+calendarHTML();
+  }
+  const limitOk = !f.limitOn || (/^\d+$/.test(String(f.limitVal)) && Number(f.limitVal)>0);
+  const valid = f.name.trim().length>0 && limitOk && (!S.sh.noName || (f.lname||'').trim().length>0);
+  const deadlinePast = edit && isPast() && !S.sh.deadlineTouched;
+  const deadlineBad = !deadlinePast && !deadlineValid(f);
+  const pickupBad = edit && S.pickupInvalid && !S.sh.pickupTouched;
+  const pickupPastBad = edit && S.pickupPast && !S.sh.pickupTouched;
+  h+=`<div class="sheet-h"><span style="width:24px"></span><span class="sh-title">${edit?'修改團購資訊':'開團'}</span><button class="icon-btn" data-act="closeSheet" aria-label="關閉">${I.close}</button></div>`;
+  if(edit){
+    /* 提案紀錄⑤ 方案 A（HungYu 選定，待與 PM 確認）：團購設定與截止時間分區塊、各自儲存 */
+    const g=S.group, genDirty = f.name.trim()!==g.name || f.date!==g.date || f.time!==g.time || f.type!==g.type || (f.limitOn?Number(f.limitVal):0)!==g.limit;
+    const dlDirty = f.dDate!==g.dDate || f.dTime!==g.dTime;
+    const genOk = valid && !pickupBad && !pickupPastBad && !deadlineBad, dlOk = !deadlineBad && !deadlinePast;
+    h+=`<div class="sheet-b" data-keep="sb" style="gap:16px">
+      <div class="edit-sec"><div><div class="es-t">團購設定${QB('Q15')}</div><div class="es-d">團名、取餐方式、每人上限</div></div>
+      <div class="field"><label class="field-label" for="gname">團名</label><input class="input${f.name.trim()?'':' err'}" id="gname" maxlength="20" value="${esc(f.name)}">
+        <div style="display:flex;justify-content:space-between">${f.name.trim()?'<span></span>':'<span class="field-err">請輸入團名</span>'}<span class="field-help">${f.name.length}/20</span></div></div>
+      <div class="field"><div class="field-label">取餐方式與時間${QB('G2')}</div><button class="pick-row${(pickupBad||pickupPastBad)?' warn':''}" data-act="sheetView" data-v="pickup"><span>${pkText(f,true)}</span>${I.chevR}</button>
+        ${pickupPastBad?'<span class="field-err">取餐時間已過，請重新選擇</span>':pickupBad?'<span class="field-err">原本的取餐方式或時間已無法使用，請重新選擇</span>':''}</div>
+      <div class="field"><div class="field-label">每人金額上限${QB('G4')}</div>
+        <div class="radio-row" data-act="limitOn" data-v="0"><span class="radio${f.limitOn?'':' on'}"><i></i></span>不限制</div>
+        <div class="radio-row" data-act="limitOn" data-v="1"><span class="radio${f.limitOn?' on':''}"><i></i></span>限制每人上限</div>
+        ${f.limitOn?`<input class="input${limitOk?'':' err'}" id="glimit" inputmode="numeric" placeholder="輸入金額，例如 300" value="${esc(f.limitVal)}">
+        ${limitOk?'<span class="field-help">只計算團員自己的品項小計，團長不受限制</span>':'<span class="field-err">請輸入大於 0 的整數</span>'}`:''}</div>
+      <button class="btn btn-l btn-primary btn-block" data-act="saveGeneral" ${(genDirty&&genOk)?'':'disabled'}>儲存團購設定</button></div>
+      <div class="edit-sec"><div><div class="es-t">截止日期與時間</div><div class="es-d">影響團員能否繼續加入與點餐，請確認後再修改</div></div>
+      <div class="field"><div class="field-label">截止日期與時間</div><button class="pick-row${(deadlinePast||deadlineBad)?' warn':''}" data-act="sheetView" data-v="deadline"><span>${dateStr(f.dDate)} ${t2s(f.dTime)}</span>${I.chevR}</button>
+        ${deadlinePast?`<span class="field-err">已過截止時間，點選後重新設定${QB('Q11')}</span>`:deadlineBad?`<span class="field-err">截止時間需早於取餐時間 ${MIN_PREP} 分鐘以上，請重新選擇${QB('G6',1)}</span>`:'<span class="field-help">截止後團員無法再修改品項</span>'}</div>
+      <button class="btn btn-l btn-primary btn-block" data-act="saveDeadline" ${(dlDirty&&dlOk)?'':'disabled'}>儲存截止時間</button></div>
+      <button class="btn btn-l btn-text-underline" data-act="askCancelGroup" ${isLocked()?'disabled':''} style="align-self:center">取消團購</button>${isLocked()?'<span class="t-desc" style="align-self:center;color:var(--on_warning-container)">團購正在結帳中，需先解除鎖定才能取消</span>':''}
+    </div></div>`;
+    return h;
+  }
+  h+=`<div class="sheet-b" data-keep="sb">
+      ${S.sh.noName?nameField('lname',f.lname||'',S.sh.ltouched,'你的會員資料沒有姓名，團員會看到這個名字','你的名字'+QB('N1')):''}
+      <div class="field"><label class="field-label" for="gname">團名</label><input class="input${f.name.trim()?'':' err'}" id="gname" maxlength="20" value="${esc(f.name)}">
+        <div style="display:flex;justify-content:space-between">${f.name.trim()?'<span></span>':'<span class="field-err">請輸入團名</span>'}<span class="field-help">${f.name.length}/20</span></div></div>
+      <div class="field"><div class="field-label">取餐方式與時間${QB('G2')}</div><button class="pick-row${(pickupBad||pickupPastBad)?' warn':''}" data-act="sheetView" data-v="pickup"><span>${pkText(f,true)}</span>${I.chevR}</button>
+        ${pickupPastBad?'<span class="field-err">取餐時間已過，請重新選擇</span>':pickupBad?'<span class="field-err">原本的取餐方式或時間已無法使用，請重新選擇</span>':''}</div>
+      <div class="field"><div class="field-label">每人金額上限${QB('G4')}</div>
+        <div class="radio-row" data-act="limitOn" data-v="0"><span class="radio${f.limitOn?'':' on'}"><i></i></span>不限制</div>
+        <div class="radio-row" data-act="limitOn" data-v="1"><span class="radio${f.limitOn?' on':''}"><i></i></span>限制每人上限</div>
+        ${f.limitOn?`<input class="input${limitOk?'':' err'}" id="glimit" inputmode="numeric" placeholder="輸入金額，例如 300" value="${esc(f.limitVal)}">
+        ${limitOk?'<span class="field-help">只計算團員自己的品項小計，團長不受限制</span>':'<span class="field-err">請輸入大於 0 的整數</span>'}`:''}</div>
+      <div class="field"><div class="field-label">截止日期與時間</div><button class="pick-row${(deadlinePast||deadlineBad)?' warn':''}" data-act="sheetView" data-v="deadline"><span>${dateStr(f.dDate)} ${t2s(f.dTime)}</span>${I.chevR}</button>
+        ${deadlinePast?`<span class="field-err">已過截止時間，點選後重新設定${QB('Q11')}</span>`:deadlineBad?`<span class="field-err">截止時間需早於取餐時間 ${MIN_PREP} 分鐘以上，請重新選擇${QB('G6',1)}</span>`:'<span class="field-help">截止後團員無法再修改品項</span>'}</div>
+    </div>
+    <div class="sheet-f"><button class="btn btn-l btn-primary btn-block" data-act="createGroup" ${(valid&&!deadlineBad)?'':'disabled'}>確認開團</button></div></div>`;
+  return h;
+}
+
+function itemSheet(){
+  /* 品項視窗：沿用現行設計（staging 店家頁品項，eid=5000353）— 左上關閉、品名價格、選項群組（已選擇 N 項）、備註＋字數、底部數量＋加入購物車 */
+  const m=MENU[S.sh.mid], sel=S.sh.sel, qty=S.sh.qty, note=S.sh.note||'';
+  let warn='';
+  if(isGroup() && !isLeader() && S.group.limit){
+    const after = subtotal(me())+m.price*qty;
+    if(after>S.group.limit) warn = `加入後為 ${money(after)}，超過每人上限 ${money(S.group.limit)}`;
+  }
+  return `<div class="mask" data-act="closeSheet"></div><div class="sheet item-sheet" role="dialog" aria-modal="true" aria-label="${m.name}">
+    <div class="sheet-b" data-keep="sbi" style="padding:0;gap:0;position:relative">
+      <div class="is-top"><button class="is-close" data-act="closeSheet" aria-label="關閉">${I.close}</button>${S.sh.follow?`<span class="is-follow">跟著加點${QB('C5')}</span>`:''}</div>
+      <div class="is-photo"><img src="${m.img}" alt="" loading="lazy"></div>
+      <div class="is-head"><div class="is-name">${m.name}</div><div class="is-price">$${m.price}</div>
+        ${S.sh.follow?`<p class="t-desc c-var" style="margin:4px 0 0">不帶入對方的選項，請重新選擇</p>`:''}</div>
+      <div class="is-sec"><div class="is-t">${m.opts.title}</div><div class="is-sub">${sel?'已選擇 1 項':'請選擇 1 項'}</div>
+        <div class="is-opts">${m.opts.items.map(o=>`<div class="radio-row" data-act="pickOpt" data-v="${o}"><span class="radio${sel===o?' on':''}"><i></i></span>${o}</div>`).join('')}</div></div>
+      <div class="is-sec"><div class="is-t">備註</div>
+        <textarea class="textarea" style="height:72px;margin-top:16px;font-size:16px" maxlength="40" placeholder="請輸入特殊需求（請勿輸入#字）" id="inote">${esc(note)}</textarea>
+        <div class="is-count">${note.length}/40</div></div>
+    </div>
+    <div class="sheet-f is-foot">${warn?`<span class="field-err">${warn}</span>`:''}
+      <div style="display:flex;gap:16px;align-items:center"><div class="ctr" style="gap:8px"><button class="ctr-btn is-minus" data-act="sheetQty" data-d="-1" ${qty<=1?'disabled':''} aria-label="減少">${I.minus}</button><span class="ctr-qty">${qty}</span><button class="ctr-btn add-primary" data-act="sheetQty" data-d="1" aria-label="增加">${I.plus}</button></div>
+      <button class="btn btn-l btn-primary" style="flex:1" data-act="addItem" ${(sel&&!warn)?'':'disabled'}>加入購物車 $${m.price*qty}</button></div></div></div>`;
+}
+
+/* ================= Notes ================= */
+const QLIST = {
+  Q1:{k:'q',t:'團長能否對他人品項按「＋」？規格寫「能修改他人原有品項，不能新增新的品項」，原型先依示意圖開放＋（仍檢查該團員上限）。'},
+  Q2:{k:'q',t:'他人購物車的小計：規格只顯示自己的小計，示意圖他人小計是灰色區塊。原型先完全隱藏他人小計。'},
+  Q3:{k:'q',t:'他人購物車是否可收合、預設狀態？規格未提，示意圖阿明、佩珊為收合。原型先預設展開，點標題可收合。'},
+  Q4:{k:'q',t:'規格寫團購購物車金額顯示到小數第二位，示意圖為整數。設計稿與原型目前全部改為整數（HungYu 調整，待與 PM 確認）。'},
+  Q5:{k:'q',t:'庫存不足時團員端是否提示？V1.1 劃掉了團員規則。原型先保留「自己品項被移除才提示」，請 PM 確認。'},
+  Q7:{k:'q',t:'同步機制為「下次操作時重取」：團員操作時才發現已鎖定／截止／被清空，原型用 Dialog 告知後再更新畫面。'},
+  Q8:{k:'q',t:'按鈕名稱：規格寫「＋1」，示意圖寫「跟點一份」。設計稿與原型目前用「跟著加點」（HungYu 調整，待與 PM 確認），樣式為 Outline Small。'},
+  Q10:{k:'q',t:'團員看到的是團長的會員價：是否需要在菜單或購物車標示「團長會員價」，避免團員誤以為是自己的價格？'},
+  Q11:{k:'q',t:'團長修改資訊時截止時間已過：規格說「點擊修改才需要調整」。原型顯示紅字提醒但不擋儲存，請確認是否可接受。'},
+  N1:{k:'q',t:'會員沒有姓名（方案一，HungYu 選定，待與 PM 確認）：規格原寫顯示「會員」，多位沒姓名會員無法分辨；改為加入／開團時補填「你的名字」（必填 50 字，只用於該次團購、不回寫會員資料）。開團的團名預帶值仍照規格「專屬的限時團購」。'},
+  Q15:{k:'q',t:'修改團購資訊分區塊儲存（PM 需求，HungYu 選定方案 A，待與 PM 確認）：規格原本是整個視窗一顆儲存，需同步更新規格。另待確認：改了取餐時間使原截止時間不合法時，目前兩顆儲存都會停用直到截止時間調整好。'},
+  Q12:{k:'q',t:'規格沒寫團長購物車步驟一可修改團購資訊。設計改為：團購卡片內放「修改團購資訊」按鈕（取代原本取餐方式的「更改」），因為解鎖時若已過截止時間本來就要打開此視窗；取餐方式也在同一視窗修改（含菜單 sha1 檢查）。鎖定時停用。HungYu 決定，待與 PM 確認。'},
+  Q13:{k:'q',t:'解鎖入口衝突：「購物車鎖定」寫解鎖按鈕只在團長購物車步驟一；「團長與團員共有」寫店家頁也有「調整」按鈕詢問是否解鎖。原型兩處都放。'},
+  D1:{k:'tmp',t:'「揪團」按鈕位置採用方案 D（HungYu 目前選用，待與同事討論）：Logo 移入主圖右下角（距右、距下各 16px，64×64）；版面依 HungYu 在流程稿 01 調整的群組結構：左欄＝店名（最大寬 243、過長折行）＋資訊列，上下間距 8；右欄＝揪團按鈕（Outline_primary Medium），兩欄間距 16，按鈕靠右距邊 16px（同檢視購物車）。資訊列不折行，目前內容約需 252px，比左欄多約 7px，會延伸進欄間距，離按鈕仍有約 9px；距離或評分數字變長時可能碰到按鈕，待確認處理方式。其他方案見流程設計稿最下方「設計提案紀錄」。'},
+  S5:{k:'tmp',t:'團購資訊卡採用設計稿「卡片 A-2」（HungYu 選定，待與同事討論）：團名最多兩行、截止＋每人上限一行、取餐方式併入卡片，底部兩顆等寬 Outline Medium 按鈕（團員：查看團購資訊／團長：修改團購資訊＋分享）。規格只要求這些資訊與按鈕存在，版面為設計暫定。'},
+  S6:{k:'spec',t:'分享團購連結視窗：URL、一鍵複製（成功顯示 Message）、QR Code；App 使用原生分享。QR 為示意圖。'},
+  G6:{k:'tmp',t:'錯誤提示（設計暫定，流程稿 02-1）：改了取餐時間後，若截止時間晚於「取餐時間－最短預約」，不再自動幫使用者調整，改為截止欄位顯示錯誤，並停用「確認開團」；點進截止設定時，預選最接近的可用時間。團名清空、上限金額空白或 0 也會在欄位下方顯示錯誤。欄位不另外標示「必填」，沿用現有網站慣例。'},
+  Q20:{k:'tmp',t:'開團時「帶入店家頁設定的取餐方式」（規格 G2）。外送需先有有效地址；內用只開放「預約訂餐」，候位中／已有座位不適用於事先揪團；宅配只選日期。這些限制規格沒寫，為設計推論，待與 PM 確認。'},
+  G5:{k:'tmp',t:'截止日期與時間沿用 B-5 取餐方式與時間設定（Figma 4692:52696）：最前方固定「檢視月曆」、日期卡片橫向捲動、置中時間清單；點「檢視月曆」疊一層月曆，選日期後關閉並回到清單。日期與時間分開選，符合規格。差異：截止沒有取餐方式 Segmented，且晚於取餐日的日期不可選；標題保留「截止日期與時間」與返回鍵，因為是從開團設定進入的第二層。'},
+};
+function notesFor(){
+  const n=[]; const add=(k,ref,t)=>n.push({k,ref,t});
+  const sc=S.screen, role=S.role;
+  if(sc==='store'){
+    if(!isGroup()){
+      add('spec','店家頁 › 一般身份 › 1','「揪團」在沒有團購身份時顯示；僅能瀏覽菜單時隱藏。');
+      add('spec','店家頁 › 一般身份 › 1.2','未登入 → 登入頁，回店家頁後需再按一次；黑名單 → 提示無權限；已登入 → 開團設定。');
+      add('spec','開團設定視窗','團名預帶「{會員姓名}的限時團購」，最多 20 字；取餐時間預設＝現在＋2×最短預約時間；截止必填、日期時間分開選；金額限制預設不限制。');
+      add('q','D1',QLIST.D1.t);
+    } else {
+      add('spec','S1｜團員身份 › 3','團員身份下隱藏距離、優惠活動區塊與菜單優惠標籤；團長身份不隱藏（規格「團長身份」段未列隱藏項目）。');
+      add('spec','S2｜團員身份 › 2','取餐方式與時間改為純資訊顯示。');
+      add('spec','S3｜團員身份 › 4','顯示團長會員價（以團購 token 計價），隱藏優惠標籤。');
+      add('spec','團長與團員共有 › 1–3','分享按鈕、截止時間、每人上限（不限制時不顯示）。');
+      if(isLocked()) add('spec','S4｜團購鎖定','菜單隱藏＋／－與加入購物車；團員不能退出、團長不能刪人。');
+      else if(isPast()) add('spec','S4｜超過截止','團員：說明已截止＋隱藏菜單加入按鈕；團長：不受限，提供「調整截止時間」。');
+      if(S.pickupInvalid) add('spec','時間相關設定多情境 › 3.2','取餐方式／時間失效：先跳提示，關閉後只顯示店家資訊與說明。');
+      add('q','S5',QLIST.S5.t); add('q','Q10',QLIST.Q10.t);
+      if(isLocked()&&isLeader()) add('q','Q13',QLIST.Q13.t);
+    }
+  }
+  if(sc==='cart'){
+    add('spec','C1｜排序','自己的購物車在最上面，其他人依加入時間新 → 舊；沒有品項的購物車也顯示。');
+    if(isLeader()){
+      add('spec','團長購物車 › 2.1.3','可改自己的；可改他人原有品項、不能新增；可刪除團員（確認後解除身份）。');
+      add('spec','C6｜商品小計','為全團加總；各團員車顯示「$X　/ 上限 $Y」（已點金額與上限同一列）。');
+      add('q','Q1',QLIST.Q1.t); add('q','Q12',QLIST.Q12.t);
+    } else {
+      add('spec','團員購物車頁','只能改自己的；不需 check order；自己小計由前端計算並顯示上限進度。');
+      add('q','Q2',QLIST.Q2.t); add('q','Q3',QLIST.Q3.t);
+    }
+    add('spec','C5｜跟著加點','開菜單品項頁，不帶入原本設定，設定完加入自己的購物車。');
+    add('q','Q4',QLIST.Q4.t); add('q','Q8',QLIST.Q8.t);
+  }
+  if(sc==='record'){ add('spec','訂購紀錄頁','團長的訂單紀錄需記錄哪些人買了哪些品項，並標記是否已付款；團員看不到。'); add('spec','訂單顯示','訂單詳細頁需顯示各品項歸屬，團長能透過團員名稱分辨是誰點的。'); add('spec','訂單處理','揪團訂單為 pending（狀態 6），愛點餐顯示「店家將在營業時間確認訂單」。'); }
+  if(sc==='done'){ add('spec','送出訂單後','沿用現行「訂單已送出」頁。全團團購購物車清空、連結失效、token 失效；訂單在團長名下，團員看不到。'); }
+  if(sc==='step2'){
+    add('spec','C7｜購物車鎖定 › 1','團長進入步驟二即鎖定；返回步驟一、離開或關掉系統仍維持鎖定。');
+    add('spec','送出訂單後','全團團購購物車清空、連結失效、token 失效；訂單在團長名下，訂單狀態 6（pending）。');
+  }
+  if(S.dialog==='identity'){ add('spec','L2｜身份設定視窗','已登入直接以會員加入；未登入選會員（去登入）或訪客（姓名必填 50 字）；設定完身份才能關閉。'); if(S.dlg&&S.dlg.noName) add('q','N1',QLIST.N1.t); }
+  if(S.dialog==='share') add('spec','S6',QLIST.S6.t);
+  if(S.sheet==='create'||S.sheet==='edit'){ add('spec','G2｜取餐方式與時間','帶入店家頁設定的取餐方式；預設取「現在＋2×最短預約時間」後第一個可用時間，不在可選範圍就選第一個可用時間。'); add('spec','G3｜取餐時間','排除「取餐時間 − 最短預約 ≤ 現在＋10 分」者；隱藏「儘快」；團購不判斷 jumbo。'); add('spec','G4｜金額限制','只算該團員自己的品項小計；團長不受限；額度跟著購物車擁有者。'); add('q','G5',QLIST.G5.t); if(S.sh&&S.sh.noName) add('q','N1',QLIST.N1.t); if(S.sheet==='edit'){ add('q','Q11',QLIST.Q11.t); add('q','Q15',QLIST.Q15.t); } }
+  add('q','Q5',QLIST.Q5.t); add('q','Q7',QLIST.Q7.t);
+  return n;
+}
+
+/* ================= Controls ================= */
+const ROLES=[['guest','一般・未登入'],['member','一般・已登入'],['blacklist','一般・黑名單'],['leader','團長'],['gm','團員・會員（小美）'],['gv','團員・訪客（阿哲）']];
+const STATUSES=[['open','進行中'],['closed','已截止'],['locked','已鎖定'],['lockedPast','已鎖定＋已過截止']];
+const LIMITS=[[0,'不限制'],[300,'$300'],[150,'$150（小美超過）']];
+function renderControls(){
+  const chip=(act,v,cur,label)=>`<button class="chip" data-act="${act}" data-v="${v}" aria-pressed="${String(v)===String(cur)}">${label}</button>`;
+  let h=`<h2>揪團原型 v1</h2><p class="sub">G-2 規格 V1.1｜手機版 375px｜切換身份與狀態，逐條核對右側規格</p>`;
+  h+=`<div class="ctl"><div class="ctl-label">身份</div><div class="chips">${ROLES.map(([v,l])=>chip('setRole',v,S.role,l)).join('')}</div></div>`;
+  h+=`<div class="ctl"><div class="ctl-label">團購狀態</div><div class="chips">${STATUSES.map(([v,l])=>chip('setStatus',v,S.status,l)).join('')}</div></div>`;
+  h+=`<div class="ctl"><div class="ctl-label">每人金額上限</div><div class="chips">${LIMITS.map(([v,l])=>chip('setLimit',v,S.group.limit,l)).join('')}</div></div>`;
+  h+=`<div class="ctl"><div class="ctl-label">畫面</div><div class="chips">${chip('setScreen','store',S.screen,'店家頁')}${isGroup()?chip('setScreen','cart',S.screen,isLeader()?'團長購物車':'團員購物車'):''}${isLeader()?chip('setScreen','step2',S.screen,'步驟二')+chip('setScreen','record',S.screen,'訂購紀錄'):''}</div></div>`;
+  h+=`<div class="ctl"><div class="ctl-label">開團</div><button class="ui-btn" data-act="createNoName">開團設定（已登入、會員沒有姓名）</button></div>`;
+  h+=`<div class="ctl"><div class="ctl-label">從團購連結進入</div>
+    <button class="ui-btn" data-act="linkValid" data-v="guest">連結有效 → 身份設定（未登入）</button>
+    <button class="ui-btn" data-act="linkValid" data-v="member">連結有效 → 身份設定（已登入會員）</button>
+    <button class="ui-btn" data-act="simCancelFail">模擬取消團購失敗（顯示後端錯誤）</button>
+    <button class="ui-btn" data-act="simUnlockFail">模擬解除鎖定失敗（顯示後端錯誤）</button>
+    <button class="ui-btn" data-act="simExitFail">模擬退出失敗（顯示後端錯誤）</button>
+    <button class="ui-btn" data-act="simJoinFail">模擬加入失敗（顯示後端錯誤）</button>
+    <button class="ui-btn" data-act="linkNoName">連結有效 → 身份設定（已登入、會員沒有姓名）</button>
+    <button class="ui-btn" data-act="linkClosed">團購已截止</button>
+    <button class="ui-btn" data-act="linkLocked">團購正在結帳中（已鎖定）</button>
+    <button class="ui-btn" data-act="linkInvalid">連結已失效</button>
+    <button class="ui-btn" data-act="linkOther">同店已參加其他團</button></div>`;
+  h+=`<div class="ctl"><div class="ctl-label">模擬事件</div>
+    <button class="ui-btn" data-act="simPickupPast">取餐時間已過（團長修改團購資訊）</button>
+    <button class="ui-btn" data-act="simPickup">取餐方式／時間失效（店家調整時段）</button>
+    <button class="ui-btn" data-act="simSoldout">庫存不足，品項被移除</button>
+    <button class="ui-btn" data-act="simCleared">團員端：購物車被清空（團長改取餐）</button>
+    <button class="ui-btn" data-act="simStockOut">庫存不足／停售：小農鮮奶茶被自動移除</button>
+    <button class="ui-btn" data-act="simLimit">團員：已達每人上限（小美）</button>
+    <button class="ui-btn" data-act="simPendingLock">團員端：背景已被鎖定，下次操作才得知</button>
+    <label class="ui-row" style="margin-top:6px"><input type="checkbox" data-act="toggleMenuChanged" ${S.menuChanged?'checked':''}>團長儲存時菜單 sha1 已變更</label></div>`;
+  h+=`<div class="ctl"><label class="ui-row"><input type="checkbox" data-act="toggleAnnot" ${S.annot?'checked':''}>畫面上顯示標註編號</label>
+    <button class="ui-btn" style="margin-top:8px" data-act="reset">重設示範資料</button></div>`;
+  return h;
+}
+function renderNotes(){
+  const ns=notesFor();
+  const kl={spec:['規格','k-spec'],q:['待確認','k-q'],tmp:['暫定','k-tmp']};
+  let h=`<div class="notes-h"><h2>這個畫面對照</h2></div><div class="legend"><span class="tagk k-spec">規格</span><span class="tagk k-q">待確認（PM）</span><span class="tagk k-tmp">暫定（設計／DS 缺口）</span></div>`;
+  for(const x of ns){ const k = x.k==='q' && QLIST[x.ref] && QLIST[x.ref].k==='tmp' ? 'tmp' : x.k;
+    h+=`<div class="note" id="note-${x.ref.split('｜')[0]}"><span class="tagk ${kl[k][1]}">${kl[k][0]}</span><div><span class="ref">${x.ref}</span>${x.t}</div></div>`; }
+  h+=`<div style="margin-top:20px"><h2>設計系統缺口（原型暫定）</h2><p class="sub" style="margin:4px 0 0">Dialog（取自 D-1）、Bottom sheet（取自 B-5）、Counter（取自 B-1）、Tag、狀態提示條、Time picker、QR Code、Icon 皆尚未有 DS 規格；餐點照片以色塊示意。</p></div>
+    <div style="margin-top:16px"><h2>v1 未涵蓋</h2><p class="sub" style="margin:4px 0 0">購物車列表頁（待你提供設計稿）、POS 與即時收單、桌面版。</p></div>`;
+  return h;
+}
+
+/* ================= Render ================= */
+const SCREEN_NAMES={store:'店家頁',cart:'購物車步驟一',step2:'購物車步驟二',done:'訂單已送出',record:'訂購紀錄頁'};
+function ensureMe(){
+  if(isGroup() && !S.carts[meId()]){ const f=seedCarts(); S.carts[meId()]=f[meId()]; }
+}
+function render(){
+  ensureMe();
+  const phone=document.getElementById('phone');
+  const keep={}; phone.querySelectorAll('[data-keep]').forEach(e=>keep[e.dataset.keep]=[e.scrollTop,e.scrollLeft]);
+  const prevScroll = phone.querySelector('.scroll')?.scrollTop||0;
+  const roleName = ROLES.find(r=>r[0]===S.role)[1];
+  document.getElementById('screenName').textContent = `${SCREEN_NAMES[S.screen]}｜${roleName}`;
+  let h = S.screen==='cart'?renderCart():S.screen==='step2'?renderStep2():S.screen==='done'?renderDone():S.screen==='record'?renderRecord():renderStore();
+  h += sheetHTML() + dialogHTML();
+  if(S.toast) h += `<div class="msg${S.toast.type==='error'?' error':''}" role="status" aria-live="polite">${S.toast.text}</div>`;
+  phone.innerHTML = h;
+  phone.classList.toggle('hide-annot',!S.annot);
+  { const sc0=phone.querySelector('.scroll'), bb0=phone.querySelector('.bottom-bar'); if(sc0&&bb0) sc0.style.paddingBottom=Math.max(96,bb0.offsetHeight+24)+'px'; } // 底部固定列較高時（如步驟二），內容最後一段不被遮住
+  phone.querySelectorAll('[data-keep]').forEach(e=>{ const k=keep[e.dataset.keep]; if(k!=null){ e.scrollTop=k[0]; e.scrollLeft=k[1]; } });
+  if(S._chipScroll){ // 從月曆選日期後：日期列捲到選取的日期（Figma：回到選單，該日期呈 selected）
+    const row=phone.querySelector('.date-row'), chip=row&&row.querySelector('.date-chip.on'), pin=row&&row.querySelector('.cal-pin');
+    if(row&&chip&&pin){ const over=chip.offsetLeft+chip.offsetWidth-(row.scrollLeft+row.clientWidth), under=chip.offsetLeft-pin.offsetWidth-row.scrollLeft; if(over>0) row.scrollLeft+=over+16; else if(under<0) row.scrollLeft+=under; }
+    S._chipScroll=null;
+  }
+  if(S._timeScroll){ // 換日期或開啟選擇器後：時間清單捲到已選時間
+    const tl=phone.querySelector('.time-list'), on=tl&&tl.querySelector('.time-opt.on');
+    if(tl&&on) tl.scrollTop=on.offsetTop-tl.offsetTop-88;
+    S._timeScroll=false;
+  }
+  const sc=phone.querySelector('.scroll'); if(sc && S._keepScroll) sc.scrollTop=prevScroll;
+  S._keepScroll=true;
+  document.getElementById('ctlPanel').innerHTML = renderControls();
+  document.getElementById('notePanel').innerHTML = renderNotes();
+  const f=S._focus; if(f){ const el=document.getElementById(f); if(el){el.focus(); const v=el.value; el.setSelectionRange?.(v.length,v.length);} S._focus=null; }
+}
+function go(screen){ S.screen=screen; S._keepScroll=false; }
+
+/* ================= Actions ================= */
+function guardSync(){ // 下次操作時重取
+  if(S.pendingLock && !isLeader()){ S.pendingLock=false; S.status='locked'; S.dialog='syncLocked'; S.sheet=null; return true; }
+  return false;
+}
+function nameField(id,val,touched,help,label){ const bad=touched&&!val.trim();
+  return `<div class="field">${label?`<label class="field-label" for="${id}">${label}</label>`:''}<input class="input${bad?' err':''}" id="${id}" maxlength="50" placeholder="請輸入你的名字" value="${esc(val)}"><div style="display:flex;justify-content:space-between;gap:8px">${bad?'<span class="field-err">請輸入你的名字</span>':`<span class="field-help">${help}</span>`}<span class="field-help" style="flex:none">${val.length}/50</span></div></div>`; }
+function openForm(kind,focus){
+  const g=S.group;
+  const form = kind==='create'
+    ? (()=>{ const st=S.store, ty=(st.type==='外送')?'自取':st.type; const t=pickupTimes(0)[0]; const dd = ty==='宅配'?DELIVERY_FROM:0; const f={name:S.noName?'專屬的限時團購':'王小明的限時團購',lname:'',type:ty,date:dd,time:ty==='宅配'?CLOSE:t,limitOn:false,limitVal:'',dDate:0,dTime:Math.ceil((NOW+10)/5)*5}; clampDeadline(f); return f; })()
+    : {name:g.name,type:g.type,date:g.date,time:g.time,limitOn:!!g.limit,limitVal:g.limit?String(g.limit):'',dDate:g.dDate,dTime:g.dTime};
+  S.sheet=kind; S.sh={form,noName:kind==='create'&&!!S.noName,view:'main',deadlineTouched:false,pickupTouched:false};
+  if(focus==='pickup'){ S.sh.view='pickup'; S.sh.tmp={type:form.type,dine:'預約訂餐',date:form.date,time:(form.type==='宅配'||pickupTimes(form.date).includes(form.time))?form.time:pickupTimes(form.date)[0]}; }
+  if(focus==='deadline'){ S.sh.view='deadline'; S.sh.tmp={dDate:form.dDate,dTime:form.dTime}; dlAutoPick(); }
+}
+function commitGeneral(clear){
+  const f=S.sh.form;
+  Object.assign(S.group,{name:f.name.trim(),type:f.type,date:f.date,time:f.time,limit:f.limitOn?Number(f.limitVal):0});
+  if(S.sh.pickupTouched){ S.pickupInvalid=false; S.pickupPast=false; }
+  if(clear){ for(const c of Object.values(S.carts)) c.items=[]; }
+  S.dialog=null; S.sh.pickupTouched=false;
+  toast(clear?'已儲存團購設定，購物車已清空':'已儲存團購設定');
+}
+function commitDeadline(){
+  const f=S.sh.form;
+  Object.assign(S.group,{dDate:f.dDate,dTime:f.dTime});
+  if(S.status==='closed') S.status='open'; if(S.status==='lockedPast') S.status='locked';
+  S.sh.deadlineTouched=false;
+  toast('已儲存截止時間');
+}
+function commitEdit(clear){
+  const f=S.sh.form;
+  Object.assign(S.group,{name:f.name.trim(),type:f.type,date:f.date,time:f.time,limit:f.limitOn?Number(f.limitVal):0,dDate:f.dDate,dTime:f.dTime});
+  if(S.sh.deadlineTouched){ if(S.status==='closed') S.status='open'; if(S.status==='lockedPast') S.status='locked'; }
+  if(S.sh.pickupTouched){ S.pickupInvalid=false; S.pickupPast=false; }
+  if(clear){ for(const c of Object.values(S.carts)) c.items=[]; }
+  S.sheet=null; S.dialog=null;
+  toast(clear?'已更新團購資訊，購物車已清空':'已更新團購資訊');
+}
+
+const A = {
+  noop(){}, stop(){},
+  q(el){ const id=el.dataset.q; const n=document.getElementById('note-'+id); if(n){ n.scrollIntoView({block:'center',behavior:'smooth'}); n.classList.remove('flash'); void n.offsetWidth; n.classList.add('flash'); } return 'norender'; },
+  setRole(el){ S.role=el.dataset.v; S.dialog=null; S.sheet=null; if(!isGroup()||(S.screen!=='store'&&!(S.screen==='cart'))) go('store'); if(S.screen==='step2'&&!isLeader()) go('store'); },
+  setStatus(el){ S.status=el.dataset.v; },
+  setLimit(el){ S.group.limit=Number(el.dataset.v); },
+  setScreen(el){ if(el.dataset.v==='record'){ A.snapOrder(); S.recOpen=false; } go(el.dataset.v); S.dialog=null; S.sheet=null; if(el.dataset.v==='step2' && !isLocked()) S.status='locked'; },
+  toggleAnnot(){ S.annot=!S.annot; },
+  toggleMenuChanged(){ S.menuChanged=!S.menuChanged; },
+  reset(){ S.noName=false; S.clearedNotice=false; S.pickupPast=false; S.carts=seedCarts(); S.group=defaultGroup(); S.status='open'; S.pickupInvalid=false; S.pendingLock=false; S.normalCart=[]; S.dialog=null; S.sheet=null; S.collapsed={}; go('store'); },
+  startGroup(){
+    if(S.role==='guest'){ toast('（原型）前往會員登入／註冊頁，完成後回到店家頁'); return; }
+    if(S.role==='blacklist'){ S.dialog='blacklist'; return; }
+    openForm('create');
+  },
+  closeDialog(){ S.dialog=null; },
+  closeSheet(){ S.sheet=null; },
+  sheetView(el){ const v=el.dataset.v, f=S.sh.form; S.sh.view=v; S.sh.tmp = v==='pickup'?{type:f.type,date:f.date,time:f.time,dine:'預約訂餐'}:{dDate:f.dDate,dTime:f.dTime}; if(v==='deadline') dlAutoPick(); if(v==='pickup'&&f.type!=='宅配'&&!pickupTimes(f.date).includes(f.time)) S.sh.tmp.time=pickupTimes(f.date)[0]; if(v==='deadline'&&!deadlineValid(f)){ const t={...f}; clampDeadline(t); S.sh.tmp={dDate:t.dDate,dTime:t.dTime}; } S._timeScroll=true; S._chipScroll=v; },
+  sheetBack(){ S.sh.view='main'; },
+  tmpDate(el){ const i=Number(el.dataset.i), t=S.sh.tmp, grp=S.sheet!=='storePickup'; t.date=i; if(t.type!=='宅配'){ t.time=(grp?pickupTimes(i):storeTimes(i))[0]; if(!grp) t.asap=(i===0&&t.type==='自取'); } S._timeScroll=true; },
+  tmpTime(el){ S.sh.tmp.time=Number(el.dataset.m); S.sh.tmp.asap=false; },
+  pkAsap(){ S.sh.tmp.asap=true; },
+  pkDine(el){ S.sh.tmp.dine=el.dataset.v; },
+  setAddr(){ toast('（原型）地址設定沿用現行流程，此處未實作'); },
+  pkType(el){ const t=S.sh.tmp, grp=S.sheet!=='storePickup', was=t.type; t.type=el.dataset.v; const ds=pkDates(t,grp); if(!ds.includes(t.date)||was==='宅配') t.date=ds[0]??0; if(t.type==='宅配') t.time=CLOSE; else { const l=grp?pickupTimes(t.date):storeTimes(t.date); if(!l.includes(t.time)||was==='宅配') t.time=l[0]; if(!grp) t.asap=(t.type==='自取'&&t.date===0); } S._chipScroll='pickup'; S._timeScroll=true; },
+  openStorePickup(){ const st=S.store; S.sheet='storePickup'; S.sh={tmp:{...st,time:st.time??storeTimes(st.date)[0]}}; S._chipScroll='pickup'; S._timeScroll=true; },
+  confirmStorePickup(){ if(!pkCanConfirm()) return; S.store={...S.sh.tmp}; S.sheet=null; },
+  storeType(el){ const v=el.dataset.v, st=S.store; if(v==='外送'){ A.openStorePickup(); A.pkType(el); return; } const was=st.type; st.type=v; const ds=pkDates(st,false); if(!ds.includes(st.date)||was==='宅配') st.date=ds[0]; if(v==='宅配'){ st.asap=false; } else { st.time=storeTimes(st.date)[0]; st.asap=(v==='自取'&&st.date===0); if(v==='內用') st.dine='預約訂餐'; } },
+  confirmPickup(){ if(!pkCanConfirm()) return; const f=S.sh.form; f.type=S.sh.tmp.type; f.date=S.sh.tmp.date; f.time=S.sh.tmp.type==='宅配'?CLOSE:S.sh.tmp.time; S.sh.pickupTouched=true; S.sh.view='main'; },
+  tmpDDate(el){ const i=Number(el.dataset.i); S.sh.tmp.dDate=i; const l=deadlineTimes(i,S.sh.form); if(!l.includes(S.sh.tmp.dTime)) S.sh.tmp.dTime=l[0]; S._timeScroll=true; },
+  openCal(el){ const kind=el.dataset.for, sel=kind==='pickup'?S.sh.tmp.date:S.sh.tmp.dDate, d=DATES[sel]||DATES[selectableDates(kind)[0]]; S.sh.cal={for:kind,y:d.y,m:d.m}; },
+  closeCal(){ S.sh.cal=null; },
+  calNav(el){ const c=S.sh.cal, t=new Date(c.y,c.m+Number(el.dataset.dm),1); c.y=t.getFullYear(); c.m=t.getMonth(); },
+  calPick(el){ const i=Number(el.dataset.i), kind=S.sh.cal.for; if(kind==='pickup') A.tmpDate(el); else A.tmpDDate(el); S.sh.cal=null; S._chipScroll=kind; },
+  tmpDTime(el){ S.sh.tmp.dTime=Number(el.dataset.m); },
+  confirmDeadline(){ const f=S.sh.form; f.dDate=S.sh.tmp.dDate; f.dTime=S.sh.tmp.dTime; S.sh.deadlineTouched=true; S.sh.view='main'; },
+  limitOn(el){ S.sh.form.limitOn = el.dataset.v==='1'; if(S.sh.form.limitOn) S._focus='glimit'; },
+  createGroup(){
+    const f=S.sh.form;
+    S.group={name:f.name.trim(),type:f.type,date:f.date,time:f.time,limit:f.limitOn?Number(f.limitVal):0,dDate:f.dDate,dTime:f.dTime};
+    const fresh=seedCarts(); S.carts={lead:{...fresh.lead,items:[]}}; if(S.sh.noName) S.carts.lead.name=f.lname.trim(); S.noName=false;
+    S.role='leader'; S.status='open'; S.sheet=null; S.dialog='share'; go('store');
+  },
+  openEdit(el){ if(isLocked() && !el.dataset.focus) return; openForm('edit',el.dataset.focus); },
+  openEditFromDlg(){ S.dialog=null; openForm('edit','pickup'); },
+  saveGeneral(){ if(S.menuChanged && S.sh.pickupTouched){ S.dialog='menuChanged'; return; } commitGeneral(false); },
+  saveDeadline(){ commitDeadline(); },
+  saveEdit(){ if(S.menuChanged && (S.sh.pickupTouched)){ S.dialog='menuChanged'; return; } commitEdit(false); },
+  saveEditConfirmed(){ if(S.sheet==='edit') commitGeneral(true); else commitEdit(true); },
+  askCancelGroup(){ S.dialog='cancelGroup'; },
+  doCancelGroup(){ if(S.simCancelFail){ S.simCancelFail=false; S.dialog='cancelFail'; render(); return; } S.sheet=null; S.dialog=null; S.role='member'; S.carts=seedCarts(); S.group=defaultGroup(); S.status='open'; go('store'); toast('已取消團購'); },
+  openShare(){ S.dialog='share'; },
+  copyLink(){ S.dialog=null; toast('已複製團購連結'); },
+  openInfo(){ if(guardSync()) return; S.dialog='info'; },
+  askExit(){ S.dialog='exit'; },
+  doExit(){ if(S.simExitFail){ S.simExitFail=false; S.dialog='exitFail'; render(); return; } S.dialog=null; S.role='member'; go('store'); toast('已退出團購'); },
+  goCart(){ if(guardSync()) return; go('cart'); },
+  goStore(){ go('store'); },
+  goStep2(){ S.status = isPast()?'lockedPast':'locked'; go('step2'); toast('已鎖定團購，團員暫時無法修改品項'); },
+  snapOrder(){ const l=memberList().filter(c=>c.items.length); const t=l.reduce((a,c)=>a+subtotal(c),0); S.doneTotal=t+Math.round(t*0.1); S.doneCarts=l.map(c=>({id:c.id,name:c.id===meId()?c.name+'（團長）':c.name,lead:c.id===meId(),items:c.items.map(x=>({...x}))})); S.paid=S.paid||{}; },
+  submitOrder(){ const l=memberList().filter(c=>c.items.length); const t=l.reduce((a,c)=>a+subtotal(c),0); S.doneTotal=t+Math.round(t*0.1); S.doneCarts=l.map(c=>({id:c.id,name:c.id===meId()?c.name+'（團長）':c.name,lead:c.id===meId(),items:c.items.map(x=>({...x}))})); S.paid={}; S.dialog=null; go('done'); },
+  togglePaid(el){ const id=el.dataset.id; S.paid[id]=!S.paid[id]; },
+  goRecord(){ S.recOpen=false; go('record'); },
+  toggleRec(){ S.recOpen=!S.recOpen; },
+  afterSubmit(){ S.dialog=null; S.role='member'; S.carts=seedCarts(); S.group=defaultGroup(); S.status='open'; go('store'); toast('團購已結束，回到一般身份'); },
+  toggleCart(el,ev){ if(ev.target.closest('button')) return 'norender'; const id=el.dataset.id; S.collapsed[id]=!S.collapsed[id]; },
+  askRemove(el){ S.dlg={id:el.dataset.id}; S.dialog='remove'; },
+  doRemove(){ const c=S.carts[S.dlg.id]; delete S.carts[S.dlg.id]; S.dialog=null; toast(`已將${c.name}移出團購`); },
+  askUnlock(){ S.dialog='unlock'; },
+  doUnlock(){ if(S.simUnlockFail){ S.simUnlockFail=false; S.dialog='unlockFail'; render(); return; } if(S.status==='lockedPast'){ S.status='closed'; S.dialog='unlockPast'; } else { S.status='open'; S.dialog=null; toast('已解除鎖定'); } },
+  unlockEdit(){ S.dialog=null; openForm('edit','deadline'); },
+  inc(el){
+    if(guardSync()) return;
+    const c=S.carts[el.dataset.id], x=c.items.find(i=>i.uid===el.dataset.uid);
+    if(S.group.limit && !c.lead && subtotal(c)+MENU[x.mid].price>S.group.limit){ toast(`${c.id===meId()?'你':c.name}已達每人上限 ${money(S.group.limit)}，無法再加點`,'error'); return; }
+    x.qty++;
+  },
+  dec(el){
+    if(guardSync()) return;
+    const c=S.carts[el.dataset.id], i=c.items.findIndex(i=>i.uid===el.dataset.uid);
+    if(c.items[i].qty>1) c.items[i].qty--; else c.items.splice(i,1);
+  },
+  follow(el){ if(guardSync()) return; S.sheet='item'; S.sh={mid:el.dataset.mid,sel:null,qty:1,follow:true}; },
+  openItem(el){ if(guardSync()) return; S.sheet='item'; S.sh={mid:el.dataset.mid,sel:null,qty:1,follow:false}; },
+  pickOpt(el){ S.sh.sel=el.dataset.v; },
+  sheetQty(el){ S.sh.qty=Math.max(1,S.sh.qty+Number(el.dataset.d)); },
+  addItem(){ S.clearedNotice=false;
+    const {mid,sel,qty}=S.sh, note=(S.sh.note||'').trim(), opts=note?`${sel}, ${note}`:sel;
+    if(isGroup()){ me().items.push(it(mid,qty,opts)); } else { S.normalCart.push(it(mid,qty,opts)); }
+    S.sheet=null; toast('已加入購物車');
+  },
+  // 連結進入
+  linkValid(el){ // 模擬一個還沒有團購身份的人點開連結（同店已在其他團的情境請用「同店已參加其他團」）
+    S.role = el.dataset.v==='member' ? 'member' : 'guest'; S.status='open'; S.sheet=null;
+    S.dlg={loggedIn:S.role==='member',who:'visitor',vname:''}; S.dialog='identity'; go('store');
+  },
+  exitFailOk(){ S.dialog='info'; render(); },
+  simExitFail(){ S.simExitFail=true; toast('（模擬）下一次按「退出團購」會失敗'); },
+  cancelMenuChange(){ /* 規格：取消 → 留在原視窗，不儲存，設定值還原 */ const f=S.sh.form, g=S.group; Object.assign(f,{type:g.type,date:g.date,time:g.time}); S.sh.pickupTouched=false; S.dialog=null; render(); },
+  simUnlockFail(){ S.simUnlockFail=true; toast('（模擬）下一次按「解除鎖定」會失敗'); },
+  simCancelFail(){ S.simCancelFail=true; toast('（模擬）下一次按「取消團購」會失敗'); },
+  joinFailOk(){ S.dlg=S.dlgBack; S.dialog='identity'; render(); },
+  simJoinFail(){ S.simJoinFail=true; A.linkValid({dataset:{v:'member'}}); toast('（模擬）下一次按「開始訂購」會加入失敗'); },
+  linkNoName(){ S.role='member'; S.status='open'; S.sheet=null; S.carts.mei.name='小美'; S.dlg={loggedIn:true,noName:true,who:'visitor',vname:'',mname:''}; S.dialog='identity'; go('store'); },
+  createNoName(){ S.role='member'; S.noName=true; S.dialog=null; go('store'); openForm('create'); },
+  linkClosed(){ S.dlg={locked:false}; S.dialog='linkClosed'; },
+  linkLocked(){ S.dlg={locked:true}; S.dialog='linkClosed'; },
+  linkInvalid(){ S.dialog='linkInvalid'; },
+  linkOther(){ if(!isGroup()) S.role='gm'; S.dlg={asLeader:isLeader()}; S.dialog='linkOther'; },
+  toStoreNormal(){ if(isGroup()) S.role='member'; S.dialog=null; go('store'); },
+  backToMyGroup(){ S.dialog=null; go('store'); },
+  pickWho(el){ S.dlg.who=el.dataset.v; if(S.dlg.who==='visitor') S._focus='vname'; },
+  joinGroup(){
+    if(S.simJoinFail && !(!S.dlg.loggedIn && S.dlg.who==='member')){ S.simJoinFail=false; S.dlgBack=S.dlg; S.dialog='joinFail'; render(); return; }
+    if(!S.dlg.loggedIn && S.dlg.who==='member'){ toast('（原型）前往登入，完成後回到店家頁（參加團購模式）'); S.dlg.loggedIn=true; return; }
+    if(S.dlg.loggedIn){ S.role='gm'; if(S.dlg.noName) S.carts.mei.name=S.dlg.mname.trim(); } else { S.role='gv'; S.carts.zhe = S.carts.zhe||{id:'zhe',visitor:true,joined:4,items:[]}; S.carts.zhe.name=S.dlg.vname.trim(); }
+    S.status='open'; S.dialog=null; go('store'); toast('已加入團購');
+  },
+  joinLater(){ S.dialog=null; toast('以一般身份瀏覽店家'); },
+  // 模擬
+  simPickupPast(){ S.role='leader'; S.status='closed'; S.pickupPast=true; S.pickupInvalid=true; /* 取餐時間已過視同規格 3.2 失效：關閉修改視窗後進入 19-3 失效頁（HungYu 同意，待 PM 確認） */ S.dialog=null; go('store'); openForm('edit'); toast('（模擬）取餐時間已過：需重選取餐時間；直接關閉會進入失效頁'); },
+  simPickup(){ if(!isGroup()){ S.role='leader'; } S.pickupInvalid=true; go('store'); S.dialog='pickupInvalid'; },
+  simSoldout(){
+    if(!isGroup()) S.role='leader';
+    if(S.carts.mei) S.carts.mei.items=S.carts.mei.items.filter(x=>x.mid!=='m2');
+    if(isLeader() && S.carts.ming) S.carts.ming.items=S.carts.ming.items.filter(x=>x.mid!=='m4');
+    S.dialog='soldout';
+  },
+  simStockOut(){ if(!isGroup()) S.role='leader'; S.status='open'; const rows=[];
+    for(const c of memberList()){ const id=c.id; const gone=c.items.filter(x=>x.mid==='m3'); if(!gone.length) continue;
+      rows.push({who:id===meId()?'我自己':c.name, items:gone.map(x=>`${MENU[x.mid].name}（${x.opts}）×${x.qty}`).join('、')}); c.items=c.items.filter(x=>x.mid!=='m3'); }
+    if(!rows.length){ toast('（模擬）目前購物車沒有小農鮮奶茶，請先重置'); return; }
+    S.dlg={rows}; S.sheet=null; S.dialog='stockOut'; go('cart'); },
+  stockPick(){ S.dialog=null; go('store'); },
+  simCleared(){ if(isLeader()||!isGroup()) S.role='gm'; for(const c of Object.values(S.carts)) c.items=[]; S.group.time='13:30'; S.clearedNotice=true; S.dialog='cleared'; go('cart'); },
+  simLimit(){ S.role='gm'; S.status='open'; const c=S.carts.mei; c.items=[it('m2',1,'原味, 加蜂蜜'),it('m3',1,'少冰, 微糖'),it('m1',1,'脆皮'),it('m5',1,'脆皮')]; S.group.limit=300; go('store'); },
+  simPendingLock(){ if(isLeader()||!isGroup()) S.role='gm'; S.status='open'; S.pendingLock=true; go('cart'); toast('（模擬）團長已在背景鎖定，請試著按＋或－'); },
+};
+
+document.addEventListener('click',ev=>{
+  const el=ev.target.closest('[data-act]'); if(!el) return;
+  if(el.tagName==='INPUT') return;
+  const act=el.dataset.act;
+  if(act==='stop') return;
+  if(el.disabled) return;
+  const fn=A[act]; if(!fn) return;
+  const r=fn(el,ev);
+  if(r!=='norender') render();
+});
+document.addEventListener('change',ev=>{
+  const el=ev.target; if(el.tagName==='INPUT' && el.type==='checkbox' && el.dataset.act){ A[el.dataset.act](el); render(); }
+});
+function onField(el){
+  if(el.id==='gname'){ S.sh.form.name=el.value; S._focus='gname'; render(); }
+  if(el.id==='glimit'){ el.value=el.value.replace(/\D/g,''); S.sh.form.limitVal=el.value; S._focus='glimit'; render(); }
+  if(el.id==='lname'){ S.sh.form.lname=el.value; if(el.value) S.sh.ltouched=true; S._focus='lname'; render(); }
+  if(el.id==='mname'){ S.dlg.mname=el.value; if(el.value) S.dlg.mtouched=true; S._focus='mname'; render(); }
+  if(el.id==='vname'){ S.dlg.vname=el.value; if(el.value) S.dlg.vtouched=true; S._focus='vname'; render(); }
+  if(el.id==='inote'){ S.sh.note=el.value.replace(/#/g,'').slice(0,40); S._focus='inote'; render(); }
+}
+document.addEventListener('input',ev=>{ if(ev.isComposing) return; onField(ev.target); });
+document.addEventListener('compositionend',ev=>onField(ev.target));
+document.addEventListener('keydown',ev=>{ if(ev.key==='Escape' && (S.sheet||S.dialog) && S.dialog!=='identity'){ S.sheet=null; S.dialog=null; render(); } });
+
+/* 手機全螢幕展示模式：長按左上角（64×64）0.6 秒開啟控制面板；選完控制項自動收合 */
+const MOBILE=matchMedia('(max-width:500px)');
+if(MOBILE.matches) S.annot=false; // 展示時預設不顯示標註編號，維持設計稿原貌（可在面板裡打開）
+function mOpen(tab){ document.body.classList.add('m-open'); document.body.classList.toggle('m-notes',tab==='notes'); document.getElementById('mTabCtl').setAttribute('aria-selected',tab!=='notes'); document.getElementById('mTabNotes').setAttribute('aria-selected',tab==='notes'); }
+function mClose(){ document.body.classList.remove('m-open','m-notes'); }
+document.getElementById('mTabCtl').onclick=()=>mOpen('ctl');
+document.getElementById('mTabNotes').onclick=()=>mOpen('notes');
+document.getElementById('mClose').onclick=mClose;
+document.getElementById('mScrim').onclick=mClose;
+let lpTimer=null, lpFired=false;
+document.addEventListener('pointerdown',ev=>{
+  if(!MOBILE.matches || document.body.classList.contains('m-open')) return;
+  if(ev.clientX>64 || ev.clientY>64) return;
+  lpFired=false; clearTimeout(lpTimer);
+  lpTimer=setTimeout(()=>{ lpFired=true; if(navigator.vibrate) navigator.vibrate(15); mOpen('ctl'); },600);
+});
+['pointerup','pointercancel','pointermove'].forEach(t=>document.addEventListener(t,ev=>{ if(t==='pointermove' && Math.abs(ev.movementX)+Math.abs(ev.movementY)<4) return; clearTimeout(lpTimer); }));
+document.addEventListener('click',ev=>{ if(lpFired){ lpFired=false; ev.stopPropagation(); ev.preventDefault(); } },true); // 長按後放開不觸發底下的返回／選單
+document.addEventListener('contextmenu',ev=>{ if(MOBILE.matches && ev.clientX<=64 && ev.clientY<=64) ev.preventDefault(); });
+document.addEventListener('click',ev=>{ if(MOBILE.matches && ev.target.closest('#ctlPanel [data-act]') && ev.target.tagName!=='INPUT') setTimeout(mClose,120); },true);
+document.addEventListener('change',ev=>{ if(MOBILE.matches && ev.target.closest('#ctlPanel')) setTimeout(mClose,120); },true);
+
+render();
+</script>
+</body>
+</html>
