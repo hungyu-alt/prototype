@@ -204,6 +204,7 @@ button{font-family:inherit;color:inherit}
 .notice .n-body{flex:1;font-size:14px;line-height:20px}
 .notice .n-title{font-weight:700}
 .notice.lock{background:var(--surface-lower);color:var(--on_surface)}
+.notice .n-act{flex:none;align-self:center;display:flex;align-items:center;gap:4px;margin-left:4px} /* 團長鎖定提示：說明與「解除鎖定」並排，說明固定寬度約兩行 */
 
 /* 店家頁 */
 .navbar{height:56px;display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--surface);position:sticky;top:0;z-index:5}
@@ -699,14 +700,14 @@ function renderStore(){
 /* 每人上限：團員自己的小計已達上限（＝）時，不能再加購物車（規格：金額限制 › 5）；團長本人不受限 */
 function atLimit(){ return isGroup() && !isLeader() && S.group.limit && subtotal(me())>=S.group.limit; }
 function limitNotice(){ if(!atLimit() || isLocked() || isPast()) return ''; const over=subtotal(me())>S.group.limit;
-  return `<div class="notice">${I.alert}<div class="n-body"><div class="n-title">${over?'已超過':'已達'}每人上限 ${money(S.group.limit)}</div>${over?'團長調整了每人上限，':''}無法再加入新品項。可到購物車減少或刪除品項後再加點。</div></div>`; }
+  return `<div class="notice">${I.alert}<div class="n-body"><div class="n-title">${over?'已超過':'已達'}每人上限 ${money(S.group.limit)}</div>${over?'團長調整了每人上限，既有品項不受影響，但無法再加入新品項。可減少或刪除品項後再加點。':'無法再加入新品項。可到購物車減少或刪除品項後再加點。'}</div></div>`; }
 function groupCard(){
   const g=S.group, leader=isLeader();
   const icInfo='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>';
   const icEdit='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>';
   const icShare='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v7h14v-7"/></svg>';
   const pk=pickupText(), i=pk.indexOf('：');
-  /* 狀態提示放在團購卡片上方（流程稿 14／15／15-1，HungYu 調整） */
+  /* 狀態提示放在團購卡片上方（流程稿「截止」「結帳與鎖定」，HungYu 調整） */
   let h = statusNotice('store') + limitNotice();
   h += `<div class="gcard"><div class="gc-body">
       <div class="gc-top"><span class="tag tag-group">團購</span><span class="gc-name">${esc(g.name)}</span>${QB('S5',1)}</div>
@@ -722,16 +723,15 @@ function groupCard(){
 function statusNotice(where){
   const leader=isLeader();
   if(isLocked()){
-    /* 步驟二：解鎖入口只在步驟一（規格 購物車鎖定 › 4），所以不放按鈕（設計稿 15-2，Claude 提案待確認） */
+    /* 步驟二：解鎖入口只在步驟一（規格 購物車鎖定 › 4），所以不放按鈕（設計稿「結帳與鎖定 ② 步驟二」，Claude 提案待確認） */
     if(where==='step2') return `<div class="notice lock">${I.lock}<div class="n-body"><div class="n-title">團購已鎖定，準備結帳</div>團員暫時無法修改品項。返回上一步仍維持鎖定，需要調整請在購物車解除鎖定。</div></div>`;
-    return `<div class="notice lock">${I.lock}<div class="n-body"><div class="n-title">團購已鎖定，團長正在結帳</div>
-      ${leader?'所有人都暫時無法修改品項。需要調整時，請先解除鎖定。':'目前無法修改品項，若需調整請與團長聯繫。'}
-      ${leader?`<div style="margin-top:8px"><button class="btn btn-s btn-outline" data-act="askUnlock">解除鎖定</button>${where==='store'?QB('Q13'):''}</div>`:''}</div></div>`;
+    return `<div class="notice lock">${I.lock}<div class="n-body"><div class="n-title">${leader?'團購已鎖定，準備結帳':'團購已鎖定，團長正在結帳'}${leader&&where==='store'?QB('Q13'):''}</div>
+      ${leader?'所有人都暫時無法修改品項，若需調整請先解除鎖定。':'目前無法修改品項，若需調整請與團長聯繫。'}
+      </div>${leader?`<div class="n-act"><button class="btn btn-s btn-outline" data-act="askUnlock">解除鎖定</button></div>`:''}</div>`;
   }
   if(isPast()){
     return `<div class="notice">${I.alert}<div class="n-body"><div class="n-title">團購已截止（${deadlineText()}）</div>
-      ${leader?'團員已無法再修改品項，你仍可以調整。想讓大家繼續點餐，可以延長截止時間。':'目前無法修改品項，若需調整請與團長聯繫。'}
-      ${leader?`<div style="margin-top:8px"><button class="btn btn-s btn-outline" data-act="openEdit" data-focus="deadline">調整截止時間</button></div>`:''}</div></div>`;
+      ${leader?'團員已無法再修改品項，你仍可以調整。想讓大家繼續點餐，可以點「修改團購資訊」延長截止時間。':'目前無法修改品項，若需調整請與團長聯繫。'}</div></div>`;
   }
   return '';
 }
@@ -753,7 +753,7 @@ function renderCart(){
   let h = `<div class="scroll"><div class="top-bar"><button class="icon-btn" data-act="goStore" aria-label="關閉">${I.close}</button><div class="tb-title t-label-l">${STORE}</div></div>`;
   h += `<div class="sec" style="display:flex;flex-direction:column;gap:12px">`;
   /* 團購資訊與取餐方式合併成一張卡（流程稿 10／13／15，提案紀錄③ 方案 1） */
-  h += statusNotice('cart') + limitNotice(); /* 狀態提示在團購卡片上方（流程稿 14／15）；已達上限見流程稿 10-1 */
+  h += statusNotice('cart') + limitNotice(); /* 狀態提示在團購卡片上方（流程稿「截止」「結帳與鎖定」）；已達上限見流程稿「團員點餐 ③ 已達每人上限」 */
   { const g=S.group, pk=pickupText(), i=pk.indexOf('：');
     h += `<div class="gcard cart-gcard"><div class="gc-body">
       <div class="gc-top"><span class="tag tag-group">團購</span><span class="gc-name">${esc(g.name)}</span>${leader?QB('Q12',1):''}</div>
@@ -800,7 +800,7 @@ function groupCartBlock(c){
   let h = `<div class="gcart${mine?' self':''}${collapsed?' collapsed':''}">`;
   h += `<div class="gcart-h" data-act="toggleCart" data-id="${c.id}">
     <span class="nm">${mine?'我自己':esc(c.name)}</span>
-    ${c.lead&&!mine?'<span class="tag tag-lead">團長</span>':''}${c.visitor?'<span class="tag">訪客</span>':''}
+    ${c.lead&&!mine?'<span class="tag tag-lead">團長</span>':''}
     <span style="color:var(--on_surface-variant)">${collapsed?I.chevR:I.chevD}</span>${(!mine&&!leader)?QB('Q3'):''}
     <span class="sp"></span>
     ${showLimit
@@ -808,7 +808,6 @@ function groupCartBlock(c){
       : `<span>${showSum?`<div class="sum">${money(sum,true)}${mine?QB('Q4'):''}</div>`:QB('Q2')}</span>`}
 
   </div><div class="gcart-b">`;
-  if(over && mine) h += `<div class="notice" style="margin-top:12px">${I.alert}<div class="n-body">團長調整了每人上限，你已超過 ${money(lim)}，無法再加點，既有品項不受影響。</div></div>`;
   if(!c.items.length) h += `<div class="gc-empty">${(S.clearedNotice && c.id===meId())?'團長更改了取餐設定，購物車已清空，請重新點餐。':'尚未點餐'}</div>`;
   for(const x of c.items){
     const m=MENU[x.mid];
@@ -837,7 +836,7 @@ function groupCartBlock(c){
 }
 
 function renderStep2(){
-  /* 購物車步驟二：沿用現行步驟二（Figma D-1 1449:96889），設計稿 15-2。
+  /* 購物車步驟二：沿用現行步驟二（Figma D-1 1449:96889），設計稿「結帳與鎖定 ② 步驟二」。
      差異（Claude 提案，HungYu 待確認）：頂部鎖定提示（不放解除鎖定）、品項依團員分組、全團小計；付款方式與發票需重新設定 */
   const g=S.group, list=memberList().filter(c=>c.items.length);
   const total=list.reduce((a,c)=>a+subtotal(c),0), fee=Math.round(total*0.1);
@@ -883,7 +882,7 @@ function renderDone(){
   <div style="padding:12px 16px"><button class="btn btn-l btn-primary btn-block" data-act="goRecord">前往訂購紀錄</button></div></div>`;
 }
 
-/* 訂購紀錄頁（團長）：沿用現行頁（Figma E-1 1463:50716，設計稿 16-1）。
+/* 訂購紀錄頁（團長）：沿用現行頁（Figma E-1 1463:50716，設計稿「結帳與鎖定 ⑤ 訂購紀錄」）。
    差異：訂單內容採提案紀錄⑥ 方案 A（姓名標籤＋已付款 checkbox，HungYu 選定，待與同事／PM 確認）；「店家將在營業時間確認訂單」放店名下方（HungYu 調整）；資訊卡加「團購」列（Claude 提案） */
 function renderRecord(){
   const g=S.group, list=S.doneCarts||[];
@@ -944,7 +943,7 @@ function dialogHTML(){
         ${loggedIn?(nn?`<div style="display:flex;flex-direction:column;gap:12px"><p class="t-body-m" style="margin:0">你的會員資料還沒有姓名，請輸入在團購中要顯示的名字，方便團長辨認。</p>${nameField('mname',mname,S.dlg.mtouched,'只用於這次團購，不會更改會員資料','你的名字'+QB('N1'))}</div>`:`<p class="t-body-m" style="margin:0">你將以「${esc(S.carts.mei.name)}」的名字加入團購，團長和團員會看到這個名字。</p>`):`<div><div class="t-label-m" style="margin-bottom:4px">選擇加入身份${QB('L2')}</div>
           <div class="radio-row" data-act="pickWho" data-v="member"><span class="radio${who==='member'?' on':''}"><i></i></span>會員（前往登入／註冊）</div>
           <div class="radio-row" data-act="pickWho" data-v="visitor"><span class="radio${who==='visitor'?' on':''}"><i></i></span>訪客</div>
-          ${who==='visitor'?`<div class="field" style="margin-top:4px"><input class="input${S.dlg.vtouched&&!name.trim()?' err':''}" id="vname" maxlength="50" placeholder="請輸入你的名字" value="${esc(name)}"><div style="display:flex;justify-content:space-between">${S.dlg.vtouched&&!name.trim()?'<span class="field-err">請輸入你的名字</span>':'<span></span>'}<span class="field-help">${name.length}/50</span></div></div>`:''}</div>`}
+          ${who==='visitor'?`<div class="field" style="margin-top:4px"><input class="input${S.dlg.vtouched&&!name.trim()?' err':''}" id="vname" maxlength="50" placeholder="請輸入你的名字" value="${esc(name)}">${S.dlg.vtouched&&!name.trim()?'<span class="field-err">請輸入你的名字</span>':''}</div>`:''}</div>`}
         <div class="d-actions"><button class="btn btn-l btn-primary" data-act="joinGroup" ${ok?'':'disabled'}>${(!loggedIn&&who==='member')?'前往登入':'開始訂購'}</button>
         <button class="btn btn-l btn-outline" data-act="joinLater">稍後再說</button></div>`,false);
     }
@@ -956,7 +955,7 @@ function dialogHTML(){
       <div class="d-actions"><button class="btn btn-l btn-primary" data-act="backToMyGroup">回到原本的團購</button></div>`,false);
     case 'info': return wrap(`<button class="icon-btn d-close" data-act="closeDialog" aria-label="關閉">${I.close}</button>
       <div class="d-text"><div class="t-h4">團購資訊</div></div>${infoList(true)}
-      <div class="d-actions"><button class="btn btn-l btn-outline-primary" data-act="askExit" ${(isLocked()||isPast())?'disabled':''}>退出團購</button>${(isLocked()||isPast())?`<span class="t-desc" style="text-align:center;color:var(--on_warning-container)">${isLocked()?'團購正在結帳中':'團購已截止'}，目前無法退出。若需調整請與團長聯繫。</span>`:''}</div>
+      <div class="d-actions"><button class="btn btn-l btn-outline-primary" data-act="askExit" ${(isLocked()||isPast())?'disabled':''}>退出團購</button>${(isLocked()||isPast())?`<span class="t-desc" style="text-align:center;color:var(--primary)">${isLocked()?'團購正在結帳中':'團購已截止'}，目前無法退出。若需調整請與團長聯繫。</span>`:''}</div>
       ${(isLocked()||isPast())?`<p class="t-desc c-var" style="margin:0;text-align:center">團購已${isLocked()?'鎖定':'截止'}，暫時無法退出</p>`:''}`,true);
     case 'exit': return simple('確定要退出團購？','你的購物車會一併刪除。之後想再加入，需重新開啟團購連結。',`<button class="btn btn-l btn-primary" data-act="doExit">退出團購</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">取消</button>`);
     case 'cancelGroup': return simple('確定要取消這個團購？','全團的購物車都會刪除，團購連結也會失效。',`<button class="btn btn-l btn-primary" data-act="doCancelGroup">取消團購</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">返回</button>`);
@@ -972,7 +971,6 @@ function dialogHTML(){
     case 'pickupInvalid': return simple('取餐方式與時間需要重新設定', '店家調整了營業設定，原本的取餐方式或時間目前無法使用。'+(isLeader()?'請重新設定，團員才能繼續點餐。':'請通知團長重新設定，完成後即可繼續點餐。'), isLeader()?`<button class="btn btn-l btn-primary" data-act="openEditFromDlg">調整取餐方式與時間</button>`:`<button class="btn btn-l btn-primary" data-act="closeDialog">我知道了</button>`, isLeader()?`<button class="btn btn-l btn-outline" data-act="closeDialog">稍後再說</button>`:undefined);
     case 'syncLocked': return simple('團長正在結帳','團購剛剛被鎖定，暫時無法修改品項。若需調整，請與團長聯繫。',`<button class="btn btn-l btn-primary" data-act="closeDialog">我知道了</button>`) ;
     case 'cleared': return simple('購物車已清空',`團長更改了取餐方式與時間，菜單內容不同，你的購物車已清空，請重新點餐。<div class="t-desc c-var" style="margin-top:8px">新的取餐：${esc(pkText(S.group,true).replace('：',' '))}</div>`,`<button class="btn btn-l btn-primary" data-act="closeDialog">重新點餐</button>`);
-    case 'soldout': return simple('品項已自動移除', isLeader()?'因庫存不足，系統已自動移除：<br>・小美的「經典起司加有機草莓格子鬆餅」<br>・阿明的「塔香蛋餅」':'因庫存不足，系統已自動移除你的「經典起司加有機草莓格子鬆餅」。',`<button class="btn btn-l btn-primary" data-act="closeDialog">確認</button>`);
     case 'submitted': return simple('訂單已送出','店家將在營業時間確認訂單。團購已結束，大家的團購身份會一併解除。',`<button class="btn btn-l btn-primary" data-act="afterSubmit">回到店家頁</button>`);
   }
   return '';
@@ -1101,7 +1099,7 @@ function groupSheet(){
     h+=`<div class="sheet-b" data-keep="sb" style="gap:16px">
       <div class="edit-sec"><div><div class="es-t">團購設定${QB('Q15')}</div><div class="es-d">團名、取餐方式、每人上限</div></div>
       <div class="field"><label class="field-label" for="gname">團名</label><input class="input${f.name.trim()?'':' err'}" id="gname" maxlength="20" value="${esc(f.name)}">
-        <div style="display:flex;justify-content:space-between">${f.name.trim()?'<span></span>':'<span class="field-err">請輸入團名</span>'}<span class="field-help">${f.name.length}/20</span></div></div>
+        ${f.name.trim()?'':'<span class="field-err">請輸入團名</span>'}</div>
       <div class="field"><div class="field-label">取餐方式與時間${QB('G2')}</div><button class="pick-row${(pickupBad||pickupPastBad)?' warn':''}" data-act="sheetView" data-v="pickup"><span>${pkText(f,true)}</span>${I.chevR}</button>
         ${pickupPastBad?'<span class="field-err">取餐時間已過，請重新選擇</span>':pickupBad?'<span class="field-err">原本的取餐方式或時間已無法使用，請重新選擇</span>':''}</div>
       <div class="field"><div class="field-label">每人金額上限${QB('G4')}</div>
@@ -1114,14 +1112,14 @@ function groupSheet(){
       <div class="field"><div class="field-label">截止日期與時間</div><button class="pick-row${(deadlinePast||deadlineBad)?' warn':''}" data-act="sheetView" data-v="deadline"><span>${dateStr(f.dDate)} ${t2s(f.dTime)}</span>${I.chevR}</button>
         ${deadlinePast?`<span class="field-err">已過截止時間，點選後重新設定${QB('Q11')}</span>`:deadlineBad?`<span class="field-err">截止時間需早於取餐時間 ${MIN_PREP} 分鐘以上，請重新選擇${QB('G6',1)}</span>`:'<span class="field-help">截止後團員無法再修改品項</span>'}</div>
       <button class="btn btn-l btn-primary btn-block" data-act="saveDeadline" ${(dlDirty&&dlOk)?'':'disabled'}>儲存截止時間</button></div>
-      <button class="btn btn-l btn-text-underline" data-act="askCancelGroup" ${isLocked()?'disabled':''} style="align-self:center">取消團購</button>${isLocked()?'<span class="t-desc" style="align-self:center;color:var(--on_warning-container)">團購正在結帳中，需先解除鎖定才能取消</span>':''}
+      <button class="btn btn-l btn-text-underline" data-act="askCancelGroup" ${isLocked()?'disabled':''} style="align-self:center">取消團購</button>${isLocked()?'<span class="t-desc" style="align-self:center;color:var(--primary)">團購正在結帳中，需先解除鎖定才能取消</span>':''}
     </div></div>`;
     return h;
   }
   h+=`<div class="sheet-b" data-keep="sb">
       ${S.sh.noName?nameField('lname',f.lname||'',S.sh.ltouched,'你的會員資料沒有姓名，團員會看到這個名字','你的名字'+QB('N1')):''}
       <div class="field"><label class="field-label" for="gname">團名</label><input class="input${f.name.trim()?'':' err'}" id="gname" maxlength="20" value="${esc(f.name)}">
-        <div style="display:flex;justify-content:space-between">${f.name.trim()?'<span></span>':'<span class="field-err">請輸入團名</span>'}<span class="field-help">${f.name.length}/20</span></div></div>
+        ${f.name.trim()?'':'<span class="field-err">請輸入團名</span>'}</div>
       <div class="field"><div class="field-label">取餐方式與時間${QB('G2')}</div><button class="pick-row${(pickupBad||pickupPastBad)?' warn':''}" data-act="sheetView" data-v="pickup"><span>${pkText(f,true)}</span>${I.chevR}</button>
         ${pickupPastBad?'<span class="field-err">取餐時間已過，請重新選擇</span>':pickupBad?'<span class="field-err">原本的取餐方式或時間已無法使用，請重新選擇</span>':''}</div>
       <div class="field"><div class="field-label">每人金額上限${QB('G4')}</div>
@@ -1146,7 +1144,7 @@ function itemSheet(){
   }
   return `<div class="mask" data-act="closeSheet"></div><div class="sheet item-sheet" role="dialog" aria-modal="true" aria-label="${m.name}">
     <div class="sheet-b" data-keep="sbi" style="padding:0;gap:0;position:relative">
-      <div class="is-top"><button class="is-close" data-act="closeSheet" aria-label="關閉">${I.close}</button>${S.sh.follow?`<span class="is-follow">跟著加點${QB('C5')}</span>`:''}</div>
+      <div class="is-top"><button class="is-close" data-act="closeSheet" aria-label="關閉">${I.close}</button>${S.sh.follow?QB('C5'):''}</div>
       <div class="is-photo"><img src="${m.img}" alt="" loading="lazy"></div>
       <div class="is-head"><div class="is-name">${m.name}</div><div class="is-price">$${m.price}</div>
         ${S.sh.follow?`<p class="t-desc c-var" style="margin:4px 0 0">不帶入對方的選項，請重新選擇</p>`:''}</div>
@@ -1167,10 +1165,7 @@ const QLIST = {
   Q2:{k:'q',t:'他人購物車的小計：規格只顯示自己的小計，示意圖他人小計是灰色區塊。原型先完全隱藏他人小計。'},
   Q3:{k:'q',t:'他人購物車是否可收合、預設狀態？規格未提，示意圖阿明、佩珊為收合。原型先預設展開，點標題可收合。'},
   Q4:{k:'q',t:'規格寫團購購物車金額顯示到小數第二位，示意圖為整數。設計稿與原型目前全部改為整數（HungYu 調整，待與 PM 確認）。'},
-  Q5:{k:'q',t:'庫存不足時團員端是否提示？V1.1 劃掉了團員規則。原型先保留「自己品項被移除才提示」，請 PM 確認。'},
-  Q7:{k:'q',t:'同步機制為「下次操作時重取」：團員操作時才發現已鎖定／截止／被清空，原型用 Dialog 告知後再更新畫面。'},
   Q8:{k:'q',t:'按鈕名稱：規格寫「＋1」，示意圖寫「跟點一份」。設計稿與原型目前用「跟著加點」（HungYu 調整，待與 PM 確認），樣式為 Outline Small。'},
-  Q10:{k:'q',t:'團員看到的是團長的會員價：是否需要在菜單或購物車標示「團長會員價」，避免團員誤以為是自己的價格？'},
   Q11:{k:'q',t:'團長修改資訊時截止時間已過：規格說「點擊修改才需要調整」。原型顯示紅字提醒但不擋儲存，請確認是否可接受。'},
   N1:{k:'q',t:'會員沒有姓名（方案一，HungYu 選定，待與 PM 確認）：規格原寫顯示「會員」，多位沒姓名會員無法分辨；改為加入／開團時補填「你的名字」（必填 50 字，只用於該次團購、不回寫會員資料）。開團的團名預帶值仍照規格「專屬的限時團購」。'},
   Q15:{k:'q',t:'修改團購資訊分區塊儲存（PM 需求，HungYu 選定方案 A，待與 PM 確認）：規格原本是整個視窗一顆儲存，需同步更新規格。另待確認：改了取餐時間使原截止時間不合法時，目前兩顆儲存都會停用直到截止時間調整好。'},
@@ -1179,7 +1174,7 @@ const QLIST = {
   D1:{k:'tmp',t:'「揪團」按鈕位置採用方案 D（HungYu 目前選用，待與同事討論）：Logo 移入主圖右下角（距右、距下各 16px，64×64）；版面依 HungYu 在流程稿 01 調整的群組結構：左欄＝店名（最大寬 243、過長折行）＋資訊列，上下間距 8；右欄＝揪團按鈕（Outline_primary Medium），兩欄間距 16，按鈕靠右距邊 16px（同檢視購物車）。資訊列不折行，目前內容約需 252px，比左欄多約 7px，會延伸進欄間距，離按鈕仍有約 9px；距離或評分數字變長時可能碰到按鈕，待確認處理方式。其他方案見流程設計稿最下方「設計提案紀錄」。'},
   S5:{k:'tmp',t:'團購資訊卡採用設計稿「卡片 A-2」（HungYu 選定，待與同事討論）：團名最多兩行、截止＋每人上限一行、取餐方式併入卡片，底部兩顆等寬 Outline Medium 按鈕（團員：查看團購資訊／團長：修改團購資訊＋分享）。規格只要求這些資訊與按鈕存在，版面為設計暫定。'},
   S6:{k:'spec',t:'分享團購連結視窗：URL、一鍵複製（成功顯示 Message）、QR Code；App 使用原生分享。QR 為示意圖。'},
-  G6:{k:'tmp',t:'錯誤提示（設計暫定，流程稿 02-1）：改了取餐時間後，若截止時間晚於「取餐時間－最短預約」，不再自動幫使用者調整，改為截止欄位顯示錯誤，並停用「確認開團」；點進截止設定時，預選最接近的可用時間。團名清空、上限金額空白或 0 也會在欄位下方顯示錯誤。欄位不另外標示「必填」，沿用現有網站慣例。'},
+  G6:{k:'tmp',t:'錯誤提示（設計暫定，流程稿「開團（團長）③ 檢核錯誤」）：改了取餐時間後，若截止時間晚於「取餐時間－最短預約」，不再自動幫使用者調整，改為截止欄位顯示錯誤，並停用「確認開團」；點進截止設定時，預選最接近的可用時間。團名清空、上限金額空白或 0 也會在欄位下方顯示錯誤。欄位不另外標示「必填」，沿用現有網站慣例。'},
   Q20:{k:'tmp',t:'開團時「帶入店家頁設定的取餐方式」（規格 G2）。外送需先有有效地址；內用只開放「預約訂餐」，候位中／已有座位不適用於事先揪團；宅配只選日期。這些限制規格沒寫，為設計推論，待與 PM 確認。'},
   G5:{k:'tmp',t:'截止日期與時間沿用 B-5 取餐方式與時間設定（Figma 4692:52696）：最前方固定「檢視月曆」、日期卡片橫向捲動、置中時間清單；點「檢視月曆」疊一層月曆，選日期後關閉並回到清單。日期與時間分開選，符合規格。差異：截止沒有取餐方式 Segmented，且晚於取餐日的日期不可選；標題保留「截止日期與時間」與返回鍵，因為是從開團設定進入的第二層。'},
 };
@@ -1198,9 +1193,9 @@ function notesFor(){
       add('spec','S3｜團員身份 › 4','顯示團長會員價（以團購 token 計價），隱藏優惠標籤。');
       add('spec','團長與團員共有 › 1–3','分享按鈕、截止時間、每人上限（不限制時不顯示）。');
       if(isLocked()) add('spec','S4｜團購鎖定','菜單隱藏＋／－與加入購物車；團員不能退出、團長不能刪人。');
-      else if(isPast()) add('spec','S4｜超過截止','團員：說明已截止＋隱藏菜單加入按鈕；團長：不受限，提供「調整截止時間」。');
+      else if(isPast()) add('spec','S4｜超過截止','團員：說明已截止＋隱藏菜單加入按鈕；團長：不受限；提示說明要延長截止時間請到「修改團購資訊」，不另放按鈕（HungYu 判斷規格重點是引導而非一定要獨立按鈕，待與 PM 確認）。');
       if(S.pickupInvalid) add('spec','時間相關設定多情境 › 3.2','取餐方式／時間失效：先跳提示，關閉後只顯示店家資訊與說明。');
-      add('q','S5',QLIST.S5.t); add('q','Q10',QLIST.Q10.t);
+      add('q','S5',QLIST.S5.t);
       if(isLocked()&&isLeader()) add('q','Q13',QLIST.Q13.t);
     }
   }
@@ -1217,6 +1212,7 @@ function notesFor(){
     add('spec','C5｜跟著加點','開菜單品項頁，不帶入原本設定，設定完加入自己的購物車。');
     add('q','Q4',QLIST.Q4.t); add('q','Q8',QLIST.Q8.t);
   }
+  if(sc==='cartlist'){ add('spec','購物車列表頁','要能辨識團購購物車：顯示團名、不同 UI 標示；團購期間該店家僅顯示團購購物車，一般購物車隱藏，團購結束後恢復；排序同原規則。'); add('tmp','設計稿「購物車列表」','團員顯示「我的 N 個商品／自己的小計」，團長顯示「全團 N 個商品（人數）／全團小計」；按鈕查看店家＋查看團購購物車，不放清空（Claude 提案，待確認）。'); }
   if(sc==='record'){ add('spec','訂購紀錄頁','團長的訂單紀錄需記錄哪些人買了哪些品項，並標記是否已付款；團員看不到。'); add('spec','訂單顯示','訂單詳細頁需顯示各品項歸屬，團長能透過團員名稱分辨是誰點的。'); add('spec','訂單處理','揪團訂單為 pending（狀態 6），愛點餐顯示「店家將在營業時間確認訂單」。'); }
   if(sc==='done'){ add('spec','送出訂單後','沿用現行「訂單已送出」頁。全團團購購物車清空、連結失效、token 失效；訂單在團長名下，團員看不到。'); }
   if(sc==='step2'){
@@ -1226,7 +1222,6 @@ function notesFor(){
   if(S.dialog==='identity'){ add('spec','L2｜身份設定視窗','已登入直接以會員加入；未登入選會員（去登入）或訪客（姓名必填 50 字）；設定完身份才能關閉。'); if(S.dlg&&S.dlg.noName) add('q','N1',QLIST.N1.t); }
   if(S.dialog==='share') add('spec','S6',QLIST.S6.t);
   if(S.sheet==='create'||S.sheet==='edit'){ add('spec','G2｜取餐方式與時間','帶入店家頁設定的取餐方式；預設取「現在＋2×最短預約時間」後第一個可用時間，不在可選範圍就選第一個可用時間。'); add('spec','G3｜取餐時間','排除「取餐時間 − 最短預約 ≤ 現在＋10 分」者；隱藏「儘快」；團購不判斷 jumbo。'); add('spec','G4｜金額限制','只算該團員自己的品項小計；團長不受限；額度跟著購物車擁有者。'); add('q','G5',QLIST.G5.t); if(S.sh&&S.sh.noName) add('q','N1',QLIST.N1.t); if(S.sheet==='edit'){ add('q','Q11',QLIST.Q11.t); add('q','Q15',QLIST.Q15.t); } }
-  add('q','Q5',QLIST.Q5.t); add('q','Q7',QLIST.Q7.t);
   return n;
 }
 
@@ -1240,7 +1235,7 @@ function renderControls(){
   h+=`<div class="ctl"><div class="ctl-label">身份</div><div class="chips">${ROLES.map(([v,l])=>chip('setRole',v,S.role,l)).join('')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">團購狀態</div><div class="chips">${STATUSES.map(([v,l])=>chip('setStatus',v,S.status,l)).join('')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">每人金額上限</div><div class="chips">${LIMITS.map(([v,l])=>chip('setLimit',v,S.group.limit,l)).join('')}</div></div>`;
-  h+=`<div class="ctl"><div class="ctl-label">畫面</div><div class="chips">${chip('setScreen','store',S.screen,'店家頁')}${isGroup()?chip('setScreen','cart',S.screen,isLeader()?'團長購物車':'團員購物車'):''}${isLeader()?chip('setScreen','step2',S.screen,'步驟二')+chip('setScreen','record',S.screen,'訂購紀錄'):''}</div></div>`;
+  h+=`<div class="ctl"><div class="ctl-label">畫面</div><div class="chips">${chip('setScreen','store',S.screen,'店家頁')}${isGroup()?chip('setScreen','cart',S.screen,isLeader()?'團長購物車':'團員購物車'):''}${isLeader()?chip('setScreen','step2',S.screen,'步驟二')+chip('setScreen','record',S.screen,'訂購紀錄'):''}${chip('setScreen','cartlist',S.screen,'購物車列表')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">開團</div><button class="ui-btn" data-act="createNoName">開團設定（已登入、會員沒有姓名）</button></div>`;
   h+=`<div class="ctl"><div class="ctl-label">從團購連結進入</div>
     <button class="ui-btn" data-act="linkValid" data-v="guest">連結有效 → 身份設定（未登入）</button>
@@ -1257,7 +1252,6 @@ function renderControls(){
   h+=`<div class="ctl"><div class="ctl-label">模擬事件</div>
     <button class="ui-btn" data-act="simPickupPast">取餐時間已過（團長修改團購資訊）</button>
     <button class="ui-btn" data-act="simPickup">取餐方式／時間失效（店家調整時段）</button>
-    <button class="ui-btn" data-act="simSoldout">庫存不足，品項被移除</button>
     <button class="ui-btn" data-act="simCleared">團員端：購物車被清空（團長改取餐）</button>
     <button class="ui-btn" data-act="simStockOut">庫存不足／停售：小農鮮奶茶被自動移除</button>
     <button class="ui-btn" data-act="simLimit">團員：已達每人上限（小美）</button>
@@ -1274,12 +1268,34 @@ function renderNotes(){
   for(const x of ns){ const k = x.k==='q' && QLIST[x.ref] && QLIST[x.ref].k==='tmp' ? 'tmp' : x.k;
     h+=`<div class="note" id="note-${x.ref.split('｜')[0]}"><span class="tagk ${kl[k][1]}">${kl[k][0]}</span><div><span class="ref">${x.ref}</span>${x.t}</div></div>`; }
   h+=`<div style="margin-top:20px"><h2>設計系統缺口（原型暫定）</h2><p class="sub" style="margin:4px 0 0">Dialog（取自 D-1）、Bottom sheet（取自 B-5）、Counter（取自 B-1）、Tag、狀態提示條、Time picker、QR Code、Icon 皆尚未有 DS 規格；餐點照片以色塊示意。</p></div>
-    <div style="margin-top:16px"><h2>v1 未涵蓋</h2><p class="sub" style="margin:4px 0 0">購物車列表頁（待你提供設計稿）、POS 與即時收單、桌面版。</p></div>`;
+    <div style="margin-top:16px"><h2>v1 未涵蓋</h2><p class="sub" style="margin:4px 0 0">POS 與即時收單、桌面版。</p></div>`;
   return h;
 }
 
+
+/* ================= 購物車列表頁（設計稿「購物車列表」20／20b：團購購物車加「團購」標籤＋團名；團員顯示自己的商品數與小計，團長顯示全團；按鈕查看店家＋查看團購購物車，不放清空；團購期間同店一般購物車隱藏） ================= */
+function renderCartList(){
+  const card=(inner,btns)=>`<div style="border:1px solid var(--outline-variant-bright);border-radius:12px;box-shadow:0 2px 5px rgba(66,66,66,.1);padding:16px;display:grid;gap:12px;background:var(--surface)">${inner}<div style="display:grid;gap:12px">${btns}</div></div>`;
+  const line=(t,b)=>`<span style="font-size:14px;line-height:20px;color:var(--on_surface-variant)${b?';font-weight:700':''}">${t}</span>`;
+  let h=`<div class="scroll"><div class="top-bar" style="border-bottom:0;justify-content:center"><div class="t-label-l">購物車</div></div><div style="padding:8px 16px 24px;display:grid;gap:16px">`;
+  if(isGroup()){
+    const leader=isLeader(), list=memberList();
+    const n=leader?list.reduce((a,c)=>a+itemCount(c),0):itemCount(me());
+    const sum=leader?list.reduce((a,c)=>a+subtotal(c),0):subtotal(me());
+    const ppl=list.filter(c=>c.items.length).length;
+    h+=card(`<div style="display:flex;gap:12px;align-items:flex-start"><img src="data:image/jpeg;base64,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" alt="店家 Logo" style="flex:none;width:76px;height:76px;box-sizing:border-box;border-radius:10px;border:1px solid var(--outline-variant-bright);object-fit:cover;background:#fff">
+      <div style="flex:1;min-width:0;display:grid;gap:4px"><span style="font-size:16px;line-height:20px;font-weight:500;letter-spacing:.64px">${STORE}</span>
+      <span style="display:flex;align-items:center;gap:6px;min-width:0"><span class="tag tag-group">團購</span><span style="font-size:14px;line-height:20px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(S.group.name)}</span></span>
+      ${line(leader?`全團 ${n} 個商品（${ppl} 人）`:`我的 ${n} 個商品`)}${line(money(sum),1)}</div></div>`,
+      `<button class="btn btn-l btn-primary btn-block" data-act="goStore">查看店家</button><button class="btn btn-l btn-outline btn-block" data-act="goCart">查看團購購物車</button>`);
+  }
+  h+=card(`<div style="display:grid;gap:4px"><span style="font-size:16px;line-height:20px;font-weight:500;letter-spacing:.64px">漢堡阿姨</span>${line('2個商品')}${line('$80',1)}</div>`,
+    `<button class="btn btn-l btn-primary btn-block" data-act="noop">查看店家</button><button class="btn btn-l btn-outline btn-block" data-act="noop">清空</button>`);
+  return h+`</div></div>`;
+}
+
 /* ================= Render ================= */
-const SCREEN_NAMES={store:'店家頁',cart:'購物車步驟一',step2:'購物車步驟二',done:'訂單已送出',record:'訂購紀錄頁'};
+const SCREEN_NAMES={store:'店家頁',cart:'購物車步驟一',step2:'購物車步驟二',done:'訂單已送出',record:'訂購紀錄頁',cartlist:'購物車列表'};
 function ensureMe(){
   if(isGroup() && !S.carts[meId()]){ const f=seedCarts(); S.carts[meId()]=f[meId()]; }
 }
@@ -1290,7 +1306,7 @@ function render(){
   const prevScroll = phone.querySelector('.scroll')?.scrollTop||0;
   const roleName = ROLES.find(r=>r[0]===S.role)[1];
   document.getElementById('screenName').textContent = `${SCREEN_NAMES[S.screen]}｜${roleName}`;
-  let h = S.screen==='cart'?renderCart():S.screen==='step2'?renderStep2():S.screen==='done'?renderDone():S.screen==='record'?renderRecord():renderStore();
+  let h = S.screen==='cart'?renderCart():S.screen==='step2'?renderStep2():S.screen==='done'?renderDone():S.screen==='record'?renderRecord():S.screen==='cartlist'?renderCartList():renderStore();
   h += sheetHTML() + dialogHTML();
   if(S.toast) h += `<div class="msg${S.toast.type==='error'?' error':''}" role="status" aria-live="polite">${S.toast.text}</div>`;
   phone.innerHTML = h;
@@ -1321,7 +1337,7 @@ function guardSync(){ // 下次操作時重取
   return false;
 }
 function nameField(id,val,touched,help,label){ const bad=touched&&!val.trim();
-  return `<div class="field">${label?`<label class="field-label" for="${id}">${label}</label>`:''}<input class="input${bad?' err':''}" id="${id}" maxlength="50" placeholder="請輸入你的名字" value="${esc(val)}"><div style="display:flex;justify-content:space-between;gap:8px">${bad?'<span class="field-err">請輸入你的名字</span>':`<span class="field-help">${help}</span>`}<span class="field-help" style="flex:none">${val.length}/50</span></div></div>`; }
+  return `<div class="field">${label?`<label class="field-label" for="${id}">${label}</label>`:''}<input class="input${bad?' err':''}" id="${id}" maxlength="50" placeholder="請輸入你的名字" value="${esc(val)}">${bad?'<span class="field-err">請輸入你的名字</span>':`<span class="field-help">${help}</span>`}</div>`; }
 function openForm(kind,focus){
   const g=S.group;
   const form = kind==='create'
@@ -1359,7 +1375,7 @@ function commitEdit(clear){
 const A = {
   noop(){}, stop(){},
   q(el){ const id=el.dataset.q; const n=document.getElementById('note-'+id); if(n){ n.scrollIntoView({block:'center',behavior:'smooth'}); n.classList.remove('flash'); void n.offsetWidth; n.classList.add('flash'); } return 'norender'; },
-  setRole(el){ S.role=el.dataset.v; S.dialog=null; S.sheet=null; if(!isGroup()||(S.screen!=='store'&&!(S.screen==='cart'))) go('store'); if(S.screen==='step2'&&!isLeader()) go('store'); },
+  setRole(el){ S.role=el.dataset.v; S.dialog=null; S.sheet=null; if(S.screen==='cartlist'){} else if(!isGroup()||(S.screen!=='store'&&!(S.screen==='cart'))) go('store'); if(S.screen==='step2'&&!isLeader()) go('store'); },
   setStatus(el){ S.status=el.dataset.v; },
   setLimit(el){ S.group.limit=Number(el.dataset.v); },
   setScreen(el){ if(el.dataset.v==='record'){ A.snapOrder(); S.recOpen=false; } go(el.dataset.v); S.dialog=null; S.sheet=null; if(el.dataset.v==='step2' && !isLocked()) S.status='locked'; },
@@ -1430,7 +1446,7 @@ const A = {
   inc(el){
     if(guardSync()) return;
     const c=S.carts[el.dataset.id], x=c.items.find(i=>i.uid===el.dataset.uid);
-    if(S.group.limit && !c.lead && subtotal(c)+MENU[x.mid].price>S.group.limit){ toast(`${c.id===meId()?'你':c.name}已達每人上限 ${money(S.group.limit)}，無法再加點`,'error'); return; }
+    if(S.group.limit && !c.lead && subtotal(c)+MENU[x.mid].price>S.group.limit){ toast(`${c.id===meId()?'你':c.name}加點後會超過每人上限 ${money(S.group.limit)}，無法再加點`,'error'); return; }
     x.qty++;
   },
   dec(el){
@@ -1476,19 +1492,13 @@ const A = {
   },
   joinLater(){ S.dialog=null; toast('以一般身份瀏覽店家'); },
   // 模擬
-  simPickupPast(){ S.role='leader'; S.status='closed'; S.pickupPast=true; S.pickupInvalid=true; /* 取餐時間已過視同規格 3.2 失效：關閉修改視窗後進入 19-3 失效頁（HungYu 同意，待 PM 確認） */ S.dialog=null; go('store'); openForm('edit'); toast('（模擬）取餐時間已過：需重選取餐時間；直接關閉會進入失效頁'); },
+  simPickupPast(){ S.role='leader'; S.status='closed'; S.pickupPast=true; S.pickupInvalid=true; /* 取餐時間已過視同規格 3.2 失效：關閉修改視窗後進入「取餐方式／時間失效」團長 ② 失效頁（HungYu 同意，待 PM 確認） */ S.dialog=null; go('store'); openForm('edit'); toast('（模擬）取餐時間已過：需重選取餐時間；直接關閉會進入失效頁'); },
   simPickup(){ if(!isGroup()){ S.role='leader'; } S.pickupInvalid=true; go('store'); S.dialog='pickupInvalid'; },
-  simSoldout(){
-    if(!isGroup()) S.role='leader';
-    if(S.carts.mei) S.carts.mei.items=S.carts.mei.items.filter(x=>x.mid!=='m2');
-    if(isLeader() && S.carts.ming) S.carts.ming.items=S.carts.ming.items.filter(x=>x.mid!=='m4');
-    S.dialog='soldout';
-  },
   simStockOut(){ if(!isGroup()) S.role='leader'; S.status='open'; const rows=[];
     for(const c of memberList()){ const id=c.id; const gone=c.items.filter(x=>x.mid==='m3'); if(!gone.length) continue;
       rows.push({who:id===meId()?'我自己':c.name, items:gone.map(x=>`${MENU[x.mid].name}（${x.opts}）×${x.qty}`).join('、')}); c.items=c.items.filter(x=>x.mid!=='m3'); }
     if(!rows.length){ toast('（模擬）目前購物車沒有小農鮮奶茶，請先重置'); return; }
-    S.dlg={rows}; S.sheet=null; S.dialog='stockOut'; go('cart'); },
+    S.dlg={rows}; S.sheet=null; S.dialog=isLeader()?'stockOut':null; /* 團員端不跳視窗，直接顯示移除後的購物車（PM 已確認） */ go('cart'); },
   stockPick(){ S.dialog=null; go('store'); },
   simCleared(){ if(isLeader()||!isGroup()) S.role='gm'; for(const c of Object.values(S.carts)) c.items=[]; S.group.time='13:30'; S.clearedNotice=true; S.dialog='cleared'; go('cart'); },
   simLimit(){ S.role='gm'; S.status='open'; const c=S.carts.mei; c.items=[it('m2',1,'原味, 加蜂蜜'),it('m3',1,'少冰, 微糖'),it('m1',1,'脆皮'),it('m5',1,'脆皮')]; S.group.limit=300; go('store'); },
