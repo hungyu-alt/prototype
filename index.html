@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>愛點餐｜揪團原型 v1</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="揪團原型">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
 <style>
@@ -95,6 +99,11 @@ button{font-family:inherit;color:inherit}
   body{background:#FFFFFF}
   .layout{display:block;padding:0;max-width:none;margin:0}
   .screen-name{display:none}
+  :root{padding-top:0;padding-bottom:0}
+  /* iPhone 底部 Home 指示條／加入主畫面全螢幕：底部固定區塊多留安全區域 */
+  .phone .bottom-bar{padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+  .phone .sheet-f{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  .phone .sheet-b:last-child{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
   .phone{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .phone input,.phone textarea{-webkit-user-select:text;user-select:text}
   .phone{width:100%;max-width:none;height:100vh;height:100dvh;border-radius:0;box-shadow:none;margin:0}
@@ -377,7 +386,7 @@ button{font-family:inherit;color:inherit}
 .date-row{display:flex;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding-right:16px}
 .date-row::-webkit-scrollbar{display:none}
 .cal-pin{position:sticky;left:0;z-index:1;flex:none;background:var(--surface);padding:0 8px 0 16px}
-.cal-chip{width:82px;height:68px;border:0;border-radius:10px;background:var(--primary);color:var(--on_primary);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;font:500 16px/20px inherit;letter-spacing:.64px;padding:0}
+.cal-chip{width:82px;height:68px;border:0;border-radius:10px;background:var(--primary);color:var(--on_primary);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;font-size:16px;line-height:20px;font-weight:400;letter-spacing:normal;padding:0}
 .cal-chip:hover{background:var(--primary_hover)}
 .date-chip{flex:none;width:88px;height:68px;margin-right:8px;border:2px solid var(--outline-variant);border-radius:10px;padding:0 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--surface);color:var(--on_surface-variant);cursor:pointer;font-family:inherit}
 .date-chip .d1{font-size:14px;line-height:20px;font-weight:500}
@@ -992,7 +1001,7 @@ function selectableDates(kind){
   DATES.forEach((_,i)=>{ if(i<=f.date && deadlineTimes(i,f).length>0) out.push(i); });
   return out;
 }
-const I_CAL='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>';
+const I_CAL='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><g fill="currentColor" stroke="none"><circle cx="8" cy="13" r="1"/><circle cx="12" cy="13" r="1"/><circle cx="16" cy="13" r="1"/><circle cx="8" cy="16.5" r="1"/><circle cx="12" cy="16.5" r="1"/><circle cx="16" cy="16.5" r="1"/></g></svg>';
 function dateRow(kind,sel){
   const act = kind==='pickup'?'tmpDate':'tmpDDate';
   return `<div class="date-row" data-keep="dr-${kind}">
