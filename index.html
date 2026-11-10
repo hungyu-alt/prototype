@@ -728,7 +728,7 @@ function statusNotice(where){
     /* 步驟二：解鎖入口只在步驟一（規格 購物車鎖定 › 4），所以不放按鈕（設計稿「結帳與鎖定 ② 步驟二」，Claude 提案待確認） */
     if(where==='step2') return `<div class="notice lock">${I.lock}<div class="n-body"><div class="n-title">團購已鎖定，準備結帳</div>團員目前無法修改品項。若需要調整餐點請返回上一步解除鎖定。</div></div>`;
     return `<div class="notice lock">${I.lock}<div class="n-body"><div class="n-title">${leader?'團購已鎖定，準備結帳':'團購已鎖定，團長正在結帳'}${leader&&where==='store'?QB('Q13'):''}</div>
-      ${leader?'所有人都暫時無法修改品項，若需調整請先解除鎖定。':'目前無法修改品項，若需調整請與團長聯繫。'}
+      ${leader?'目前無法修改品項，若需調整請先解除鎖定。':'目前無法修改品項，若需調整請與團長聯繫。'}
       </div>${leader?`<div class="n-act"><button class="btn btn-s btn-outline" data-act="askUnlock">解除鎖定</button></div>`:''}</div>`;
   }
   if(S.pickupPast && leader){
@@ -738,7 +738,7 @@ function statusNotice(where){
   }
   if(isPast()){
     return `<div class="notice">${I.alert}<div class="n-body"><div class="n-title">團購已截止（${deadlineText()}）</div>
-      ${leader?'團員已無法再修改品項，你仍可以調整。想讓大家繼續點餐，可以點「修改團購資訊」延長截止時間。':'目前無法修改品項，若需調整請與團長聯繫。'}</div></div>`;
+      ${leader?'團員已無法再修改品項，你仍可以調整。想讓大家繼續點餐，請點「修改團購資訊」延長截止時間。':'目前無法修改品項，若需調整請與團長聯繫。'}</div></div>`;
   }
   return '';
 }
