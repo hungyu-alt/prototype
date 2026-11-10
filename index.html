@@ -664,7 +664,7 @@ function renderStore(){
 
   if(limitedView){
     h += `<div class="notice">${I.alert}<div class="n-body"><div class="n-title">取餐方式與時間需要重新設定</div>
-      店家調整了營業設定，原本的取餐方式或時間目前無法使用。${leader?'請重新設定，團員才能繼續點餐。':'請通知團長重新設定，完成後即可繼續點餐。'}<div style="margin-top:4px;font-size:12px;line-height:16px">原設定：${esc(pkText(S.group,true))}</div></div></div>`;
+      店家調整了營業設定，原本的取餐方式或時間目前無法使用。${leader?'請重新設定，團員才能繼續點餐。':'請通知團長重新設定，完成後即可繼續點餐。'}</div></div>`;
     if(leader) h += `<button class="btn btn-l btn-outline btn-block" data-act="openEdit" data-focus="pickup">調整取餐方式與時間</button>`;
     h += `</div></div>`;
     return h;
@@ -713,11 +713,11 @@ function groupCard(){
   h += `<div class="gcard"><div class="gc-body">
       <div class="gc-top"><span class="tag tag-group">團購</span><span class="gc-name">${esc(g.name)}</span>${QB('S5',1)}</div>
       <div class="gc-meta">${deadlineText()} 截止${g.limit?`・每人上限 ${money(g.limit)}`:''}</div>
-      <div class="gc-pick"><span class="c-var">${pk.slice(0,i)}</span><b>${pk.slice(i+1)}</b>${QB('S2')}</div></div>
+      <div class="gc-pick"><span class="c-var">${pk.slice(0,i)}</span><b${S.pickupPast&&leader?' style="color:var(--primary_pressed,#AB3832)"':''}>${pk.slice(i+1)}</b>${QB('S2')}</div></div>
     <div class="gc-actions">${leader
       ? `<button class="btn btn-m btn-outline" data-act="openEdit" ${isLocked()?'disabled':''}>${icEdit}修改團購資訊</button>`
       : `<button class="btn btn-m btn-outline" data-act="openInfo">${icInfo}查看團購資訊</button>`}
-      <button class="btn btn-m btn-outline" data-act="openShare">${icShare}分享</button></div></div>`;
+      <button class="btn btn-m btn-outline" data-act="openShare" ${isLocked()?'disabled':''}>${icShare}分享</button></div></div>`;
   return h;
 }
 
@@ -729,6 +729,11 @@ function statusNotice(where){
     return `<div class="notice lock">${I.lock}<div class="n-body"><div class="n-title">${leader?'團購已鎖定，準備結帳':'團購已鎖定，團長正在結帳'}${leader&&where==='store'?QB('Q13'):''}</div>
       ${leader?'所有人都暫時無法修改品項，若需調整請先解除鎖定。':'目前無法修改品項，若需調整請與團長聯繫。'}
       </div>${leader?`<div class="n-act"><button class="btn btn-s btn-outline" data-act="askUnlock">解除鎖定</button></div>`:''}</div>`;
+  }
+  if(S.pickupPast && leader){
+    /* 取餐時間已過（團長未送出訂單）：只給團長看，取代截止提示；入口沿用團購卡「修改團購資訊」（流程稿「修改團購資訊」列 例外｜取餐時間已過 店家頁提示；HungYu 決定，團員不顯示） */
+    return `<div class="notice">${I.alert}<div class="n-body"><div class="n-title">取餐時間已過，請重新設定</div>
+      已過取餐時間，訂單仍未送出。請點「修改團購資訊」重新選擇取餐時間。</div></div>`;
   }
   if(isPast()){
     return `<div class="notice">${I.alert}<div class="n-body"><div class="n-title">團購已截止（${deadlineText()}）</div>
@@ -763,7 +768,7 @@ function renderCart(){
       <div class="gc-actions">${leader
         ? `<button class="btn btn-m btn-outline" data-act="openEdit" ${isLocked()?'disabled':''}>${I.editS}修改團購資訊</button>`
         : `<button class="btn btn-m btn-outline" data-act="openInfo">${I.infoS}查看團購資訊</button>`}
-        <button class="btn btn-m btn-outline" data-act="openShare">${I.shareS}分享</button></div></div>`; }
+        <button class="btn btn-m btn-outline" data-act="openShare" ${isLocked()?'disabled':''}>${I.shareS}分享</button></div></div>`; }
   h += `</div>`;
 
   h += `<div class="sec" style="padding-top:0"><h2 class="sec-title">點餐品項${QB('C1')}</h2>`;
@@ -809,7 +814,7 @@ function groupCartBlock(c){
       : `<span>${showSum?`<div class="sum">${money(sum,true)}${mine?QB('Q4'):''}</div>`:QB('Q2')}</span>`}
 
   </div><div class="gcart-b">`;
-  if(!c.items.length) h += `<div class="gc-empty">${(S.clearedNotice && c.id===meId())?'團長更改了取餐設定，購物車已清空，請重新點餐。':'尚未點餐'}</div>`;
+  if(!c.items.length) h += `<div class="gc-empty">尚未點餐</div>`;
   for(const x of c.items){
     const m=MENU[x.mid];
     h += `<div class="citem"><div class="photo sm ${m.ph}" aria-hidden="true"><img src="${m.img}" alt="" loading="lazy"></div><div class="ci-body">
@@ -1191,6 +1196,7 @@ function notesFor(){
       add('spec','團長與團員共有 › 1–3','分享按鈕、截止時間、每人上限（不限制時不顯示）。');
       if(isLocked()) add('spec','S4｜團購鎖定','菜單隱藏＋／－與加入購物車；團員不能退出、團長不能刪人。');
       else if(isPast()) add('spec','S4｜超過截止','團員：說明已截止＋隱藏菜單加入按鈕；團長：不受限；提示說明要延長截止時間請到「修改團購資訊」，不另放按鈕（HungYu 判斷規格重點是引導而非一定要獨立按鈕，待與 PM 確認）。');
+      if(S.pickupPast&&isLeader()) add('tmp','取餐時間已過（團長）','團長一直未送出訂單、取餐時間已過：店家頁團購卡上方顯示「取餐時間已過，請重新設定」，取代截止提示，入口沿用「修改團購資訊」；團員不顯示（HungYu 決定，文案 HungYu 調整）。');
       if(S.pickupInvalid) add('spec','時間相關設定多情境 › 3.2','取餐方式／時間失效：先跳提示，關閉後只顯示店家資訊與說明。');
       add('q','S5',QLIST.S5.t);
       if(isLocked()&&isLeader()) add('q','Q13',QLIST.Q13.t);
@@ -1209,7 +1215,7 @@ function notesFor(){
     add('spec','C5｜跟著加點','開菜單品項頁，不帶入原本設定，設定完加入自己的購物車。');
     add('q','Q4',QLIST.Q4.t); add('q','Q8',QLIST.Q8.t);
   }
-  if(sc==='cartlist'){ add('spec','購物車列表頁','要能辨識團購購物車：顯示團名、不同 UI 標示；團購期間該店家僅顯示團購購物車，一般購物車隱藏，團購結束後恢復；排序同原規則。'); add('tmp','設計稿「購物車列表」','團員顯示「我的 N 個商品／自己的小計」，團長顯示「全團 N 個商品（人數）／全團小計」；按鈕查看店家＋查看團購購物車，不放清空（Claude 提案，待確認）。'); }
+  if(sc==='cartlist'){ add('spec','購物車列表頁','要能辨識團購購物車：顯示團名、不同 UI 標示；團購期間該店家僅顯示團購購物車，一般購物車隱藏，團購結束後恢復；排序同原規則。'); add('tmp','設計稿「購物車列表」','團員顯示「我的 N 個商品／自己的小計」，團長顯示「全團 N 個商品（人數）／全團小計」；只留「查看店家」，不放查看團購購物車與清空（HungYu 要求）。'); }
   if(sc==='record'){ add('spec','訂購紀錄頁','團長的訂單紀錄需記錄哪些人買了哪些品項，並標記是否已付款；團員看不到。'); add('spec','訂單顯示','訂單詳細頁需顯示各品項歸屬，團長能透過團員名稱分辨是誰點的。'); add('spec','訂單處理','揪團訂單為 pending（狀態 6），愛點餐顯示「店家將在營業時間確認訂單」。'); }
   if(sc==='done'){ add('spec','送出訂單後','沿用現行「訂單已送出」頁。全團團購購物車清空、連結失效、token 失效；訂單在團長名下，團員看不到。'); }
   if(sc==='step2'){
@@ -1243,7 +1249,7 @@ function renderControls(){
     <button class="ui-btn" data-act="linkInvalid">連結已失效</button>
     <button class="ui-btn" data-act="linkOther">同店已參加其他團</button></div>`;
   h+=`<div class="ctl"><div class="ctl-label">模擬事件</div>
-    <button class="ui-btn" data-act="simPickupPast">取餐時間已過（團長修改團購資訊）</button>
+    <button class="ui-btn" data-act="simPickupPast">取餐時間已過（團長未送出訂單）</button>
     <button class="ui-btn" data-act="simPickup">取餐方式／時間失效（店家調整時段）</button>
     <button class="ui-btn" data-act="simCleared">團員端：購物車被清空（團長改取餐）</button>
     <button class="ui-btn" data-act="simStockOut">庫存不足／停售：小農鮮奶茶被自動移除</button>
@@ -1266,7 +1272,7 @@ function renderNotes(){
 }
 
 
-/* ================= 購物車列表頁（設計稿「購物車列表」20／20b：團購購物車加「團購」標籤＋團名；團員顯示自己的商品數與小計，團長顯示全團；按鈕查看店家＋查看團購購物車，不放清空；團購期間同店一般購物車隱藏） ================= */
+/* ================= 購物車列表頁（設計稿「購物車列表」20／20b：團購購物車加「團購」標籤＋團名；團員顯示自己的商品數與小計，團長顯示全團；只留查看店家按鈕；團購期間同店一般購物車隱藏） ================= */
 function renderCartList(){
   const card=(inner,btns)=>`<div style="border:1px solid var(--outline-variant-bright);border-radius:12px;box-shadow:0 2px 5px rgba(66,66,66,.1);padding:16px;display:grid;gap:12px;background:var(--surface)">${inner}<div style="display:grid;gap:12px">${btns}</div></div>`;
   const line=(t,b)=>`<span style="font-size:14px;line-height:20px;color:var(--on_surface-variant)${b?';font-weight:700':''}">${t}</span>`;
@@ -1280,7 +1286,7 @@ function renderCartList(){
       <div style="flex:1;min-width:0;display:grid;gap:4px"><span style="font-size:16px;line-height:20px;font-weight:500;letter-spacing:.64px">${STORE}</span>
       <span style="display:flex;align-items:center;gap:6px;min-width:0"><span class="tag tag-group">團購</span><span style="font-size:14px;line-height:20px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(S.group.name)}</span></span>
       ${line(leader?`全團 ${n} 個商品（${ppl} 人）`:`我的 ${n} 個商品`)}${line(money(sum),1)}</div></div>`,
-      `<button class="btn btn-l btn-primary btn-block" data-act="goStore">查看店家</button><button class="btn btn-l btn-outline btn-block" data-act="goCart">查看團購購物車</button>`);
+      `<button class="btn btn-l btn-primary btn-block" data-act="goStore">查看店家</button>`);
   }
   h+=card(`<div style="display:grid;gap:4px"><span style="font-size:16px;line-height:20px;font-weight:500;letter-spacing:.64px">漢堡阿姨</span>${line('2個商品')}${line('$80',1)}</div>`,
     `<button class="btn btn-l btn-primary btn-block" data-act="noop">查看店家</button><button class="btn btn-l btn-outline btn-block" data-act="noop">清空</button>`);
@@ -1345,14 +1351,14 @@ function commitGeneral(clear){
   Object.assign(S.group,{name:f.name.trim(),type:f.type,date:f.date,time:f.time,limit:f.limitOn?Number(f.limitVal):0});
   if(S.sh.pickupTouched){ S.pickupInvalid=false; S.pickupPast=false; }
   if(clear){ for(const c of Object.values(S.carts)) c.items=[]; }
-  S.dialog=null; S.sh.pickupTouched=false;
+  S.dialog=null; S.sh.pickupTouched=false; S.sheet=null; /* 儲存成功：關閉視窗並更新畫面（HungYu 確定） */
   toast(clear?'已儲存團購設定，購物車已清空':'已儲存團購設定');
 }
 function commitDeadline(){
   const f=S.sh.form;
   Object.assign(S.group,{dDate:f.dDate,dTime:f.dTime});
   if(S.status==='closed') S.status='open'; if(S.status==='lockedPast') S.status='locked';
-  S.sh.deadlineTouched=false;
+  S.sh.deadlineTouched=false; S.sheet=null;
   toast('已儲存截止時間');
 }
 function commitEdit(clear){
@@ -1478,7 +1484,7 @@ const A = {
   },
   joinLater(){ S.dialog=null; toast('以一般身份瀏覽店家'); },
   // 模擬
-  simPickupPast(){ S.role='leader'; S.status='closed'; S.pickupPast=true; S.pickupInvalid=true; /* 取餐時間已過視同規格 3.2 失效：關閉修改視窗後進入「取餐方式／時間失效」團長 ② 失效頁（HungYu 同意，待 PM 確認） */ S.dialog=null; go('store'); openForm('edit'); toast('（模擬）取餐時間已過：需重選取餐時間；直接關閉會進入失效頁'); },
+  simPickupPast(){ S.role='leader'; S.status='closed'; S.pickupPast=true; S.pickupInvalid=false; /* 取餐時間已過（團長未送出訂單）：不進失效頁，店家頁顯示團長專屬提示，關閉修改視窗後仍是完整店家頁；團員只看到一般截止提示（HungYu 決定） */ S.dialog=null; go('store'); toast('（模擬）取餐時間已過：團長店家頁顯示重新設定提示'); },
   simPickup(){ if(!isGroup()){ S.role='leader'; } S.pickupInvalid=true; go('store'); S.dialog='pickupInvalid'; },
   simStockOut(){ if(!isGroup()) S.role='leader'; S.status='open'; const rows=[];
     for(const c of memberList()){ const id=c.id; const gone=c.items.filter(x=>x.mid==='m3'); if(!gone.length) continue;
