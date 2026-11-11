@@ -384,6 +384,11 @@ button{font-family:inherit;color:inherit}
 .sheet-f{border-top:1px solid var(--divider);padding:16px}
 .pick-row{display:flex;justify-content:space-between;align-items:center;min-height:48px;border:2px solid var(--outline-variant);border-radius:8px;padding:12px;cursor:pointer;font-size:16px;line-height:20px;background:var(--surface);width:100%;color:var(--on_surface);font-family:inherit;text-align:left}
 .pick-row.warn{border-color:var(--primary_pressed)}
+/* 鎖定時修改團購資訊唯讀：沿用 input.md disabled（無邊框、$disabled 底、$on_disabled 字）；radio 已選取＋disabled 在 DS 缺變體（radio.md 落差 1），暫以 $disabled 實心＋$surface 圓點示意，待確認 */
+.input:disabled,.pick-row:disabled{border-color:transparent;background:var(--disabled,#E0E0E0);color:var(--on_disabled,#999999);cursor:default}
+.radio-row.dis{cursor:default;color:var(--on_disabled,#999999)}
+.radio-row.dis .radio i{background:var(--surface-low,#F7F7F7);box-shadow:inset 0 0 0 2px var(--disabled,#E0E0E0)}
+.radio-row.dis .radio.on i{background:var(--disabled,#E0E0E0);box-shadow:none}
 /* 日期列＋時間清單＋月曆：依 B-5 取餐方式與時間設定（Figma 4692:52696） */
 .date-row{display:flex;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding-right:16px}
 .date-row::-webkit-scrollbar{display:none}
@@ -716,7 +721,7 @@ function groupCard(){
       <div class="gc-meta">${deadlineText()} 截止${g.limit?`・每人上限 ${money(g.limit)}`:''}</div>
       <div class="gc-pick"><span class="c-var">${pk.slice(0,i)}</span><b${S.pickupPast&&leader?' style="color:var(--primary_pressed,#AB3832)"':''}>${pk.slice(i+1)}</b>${QB('S2')}</div></div>
     <div class="gc-actions">${leader
-      ? `<button class="btn btn-m btn-outline" data-act="openEdit" ${isLocked()?'disabled':''}>${icEdit}修改團購資訊</button>`
+      ? `<button class="btn btn-m btn-outline" data-act="openEdit">${icEdit}修改團購資訊</button>`
       : `<button class="btn btn-m btn-outline" data-act="openInfo">${icInfo}查看團購資訊</button>`}
       <button class="btn btn-m btn-outline" data-act="openShare" ${isLocked()?'disabled':''}>${icShare}分享</button></div></div>`;
   return h;
@@ -767,7 +772,7 @@ function renderCart(){
       <div class="gc-meta">${deadlineText()} 截止${g.limit?`・每人上限 ${money(g.limit)}`:''}</div>
       <div class="gc-pick"><span class="c-var">${pk.slice(0,i)}</span><b${S.pickupPast&&leader?' style="color:var(--primary_pressed,#AB3832)"':''}>${pk.slice(i+1)}</b></div></div>
       <div class="gc-actions">${leader
-        ? `<button class="btn btn-m btn-outline" data-act="openEdit" ${isLocked()?'disabled':''}>${I.editS}修改團購資訊</button>`
+        ? `<button class="btn btn-m btn-outline" data-act="openEdit">${I.editS}修改團購資訊</button>`
         : `<button class="btn btn-m btn-outline" data-act="openInfo">${I.infoS}查看團購資訊</button>`}
         <button class="btn btn-m btn-outline" data-act="openShare" ${isLocked()?'disabled':''}>${I.shareS}分享</button></div></div>`; }
   h += `</div>`;
@@ -1097,6 +1102,8 @@ function groupSheet(){
   const deadlineBad = !deadlinePast && !deadlineValid(f);
   const pickupBad = edit && S.pickupInvalid && !S.sh.pickupTouched;
   const pickupPastBad = edit && S.pickupPast && !S.sh.pickupTouched;
+  const ro = edit && isLocked() && !S.pickupPast; /* 鎖定：欄位唯讀，直到解除鎖定（HungYu 要求）；步驟二送出時取餐時間已過的 Dialog 進來時例外，可修改 */
+  const D = ro?' disabled':'';
   h+=`<div class="sheet-h"><span style="width:24px"></span><span class="sh-title">${edit?'修改團購資訊':'開團'}</span><button class="icon-btn" data-act="closeSheet" aria-label="關閉">${I.close}</button></div>`;
   if(edit){
     /* 提案紀錄⑤ 方案 A（HungYu 選定，待與 PM 確認）：團購設定與截止時間分區塊、各自儲存 */
@@ -1104,21 +1111,22 @@ function groupSheet(){
     const dlDirty = f.dDate!==g.dDate || f.dTime!==g.dTime;
     const genOk = valid && !pickupBad && !pickupPastBad && !deadlineBad, dlOk = !deadlineBad && !deadlinePast;
     h+=`<div class="sheet-b" data-keep="sb" style="gap:16px">
+      ${ro?`<div class="notice lock">${I.lock}<div class="n-body">團購已鎖定，解除鎖定後才能修改團購資訊。</div></div>`:''}
       <div class="edit-sec"><div><div class="es-t">團購設定${QB('Q15')}</div><div class="es-d">團名、取餐方式、每人上限</div></div>
-      <div class="field"><label class="field-label" for="gname">團名</label><input class="input${f.name.trim()?'':' err'}" id="gname" maxlength="20" value="${esc(f.name)}">
+      <div class="field"><label class="field-label" for="gname">團名</label><input class="input${f.name.trim()?'':' err'}" id="gname" maxlength="20" value="${esc(f.name)}"${D}>
         ${f.name.trim()?'':'<span class="field-err">請輸入團名</span>'}</div>
-      <div class="field"><div class="field-label">取餐方式與時間${QB('G2')}</div><button class="pick-row${(pickupBad||pickupPastBad)?' warn':''}" data-act="sheetView" data-v="pickup"><span>${pkText(f,true)}</span>${I.chevR}</button>
+      <div class="field"><div class="field-label">取餐方式與時間${QB('G2')}</div><button class="pick-row${(pickupBad||pickupPastBad)?' warn':''}" ${ro?'':'data-act="sheetView" data-v="pickup"'}${D}><span>${pkText(f,true)}</span>${I.chevR}</button>
         ${pickupPastBad?'<span class="field-err">取餐時間已過，請重新選擇</span>':pickupBad?'<span class="field-err">原本的取餐方式與時間已無法使用，請重新選擇</span>':(edit&&S.sh.pickupTouched?'<span class="field-help">若菜單因此不同，儲存時會提示清空全團購物車</span>':'')}</div>
       <div class="field"><div class="field-label">每人金額上限${QB('G4')}</div>
-        <div class="radio-row" data-act="limitOn" data-v="0"><span class="radio${f.limitOn?'':' on'}"><i></i></span>不限制</div>
-        <div class="radio-row" data-act="limitOn" data-v="1"><span class="radio${f.limitOn?' on':''}"><i></i></span>限制每人上限</div>
-        ${f.limitOn?`<input class="input${limitOk?'':' err'}" id="glimit" inputmode="numeric" placeholder="輸入金額，例如 300" value="${esc(f.limitVal)}">
+        <div class="radio-row${ro?' dis':''}" ${ro?'':'data-act="limitOn" data-v="0"'}><span class="radio${f.limitOn?'':' on'}"><i></i></span>不限制</div>
+        <div class="radio-row${ro?' dis':''}" ${ro?'':'data-act="limitOn" data-v="1"'}><span class="radio${f.limitOn?' on':''}"><i></i></span>限制每人上限</div>
+        ${f.limitOn?`<input class="input${limitOk?'':' err'}" id="glimit" inputmode="numeric" placeholder="輸入金額，例如 300" value="${esc(f.limitVal)}"${D}>
         ${limitOk?'<span class="field-help">只計算團員自己的品項小計，團長不受限制</span>':'<span class="field-err">請輸入大於 0 的整數</span>'}`:''}</div>
-      <button class="btn btn-l btn-primary btn-block" data-act="saveGeneral" ${(genDirty&&genOk)?'':'disabled'}>儲存團購設定</button></div>
+      <button class="btn btn-l btn-primary btn-block" data-act="saveGeneral" ${(!ro&&genDirty&&genOk)?'':'disabled'}>儲存團購設定</button></div>
       <div class="edit-sec"><div><div class="es-t">截止日期與時間</div><div class="es-d">影響團員能否繼續加入與點餐，請確認後再修改</div></div>
-      <div class="field"><div class="field-label">截止日期與時間</div><button class="pick-row${(deadlinePast||deadlineBad)?' warn':''}" data-act="sheetView" data-v="deadline"><span>${dateStr(f.dDate)} ${t2s(f.dTime)}</span>${I.chevR}</button>
+      <div class="field"><div class="field-label">截止日期與時間</div><button class="pick-row${(deadlinePast||deadlineBad)?' warn':''}" ${ro?'':'data-act="sheetView" data-v="deadline"'}${D}><span>${dateStr(f.dDate)} ${t2s(f.dTime)}</span>${I.chevR}</button>
         ${deadlinePast?`<span class="field-err">已過截止時間，點選後重新設定${QB('Q11')}</span>`:deadlineBad?`<span class="field-err">截止時間需早於取餐時間 ${MIN_PREP} 分鐘以上，請重新選擇${QB('G6',1)}</span>`:'<span class="field-help">截止後團員無法再修改品項</span>'}</div>
-      <button class="btn btn-l btn-primary btn-block" data-act="saveDeadline" ${(dlDirty&&dlOk)?'':'disabled'}>儲存截止時間</button></div>
+      <button class="btn btn-l btn-primary btn-block" data-act="saveDeadline" ${(!ro&&dlDirty&&dlOk)?'':'disabled'}>儲存截止時間</button></div>
       <button class="btn btn-l btn-text-underline" data-act="askCancelGroup" ${isLocked()?'disabled':''} style="align-self:center">取消團購</button>${isLocked()?'<span class="t-desc" style="align-self:center;color:var(--primary)">團購正在結帳中，需先解除鎖定才能取消</span>':''}
     </div></div>`;
     return h;
@@ -1227,7 +1235,7 @@ function notesFor(){
   }
   if(S.dialog==='identity'){ add('spec','L2｜身份設定視窗','已登入直接以會員加入；未登入選會員（去登入）或訪客（姓名必填 50 字）；設定完身份才能關閉。'); if(S.dlg&&S.dlg.noName) add('spec','N1',QLIST.N1.t); }
   if(S.dialog==='share') add('spec','S6',QLIST.S6.t);
-  if(S.sheet==='create'||S.sheet==='edit'){ add('spec','G2｜取餐方式與時間','帶入店家頁設定的取餐方式；預設取「現在＋2×最短預約時間」後第一個可用時間，不在可選範圍就選第一個可用時間。'); add('spec','G3｜取餐時間','排除「取餐時間 − 最短預約 ≤ 現在＋10 分」者；隱藏「儘快」；團購不判斷 jumbo。'); add('spec','G4｜金額限制','只算該團員自己的品項小計；團長不受限；額度跟著購物車擁有者。'); add('q','G5',QLIST.G5.t); if(S.sh&&S.sh.noName) add('spec','N1',QLIST.N1.t); if(S.sheet==='edit'){ add('q','Q11',QLIST.Q11.t); add('q','Q15',QLIST.Q15.t); } }
+  if(S.sheet==='create'||S.sheet==='edit'){ add('spec','G2｜取餐方式與時間','帶入店家頁設定的取餐方式；預設取「現在＋2×最短預約時間」後第一個可用時間，不在可選範圍就選第一個可用時間。'); add('spec','G3｜取餐時間','排除「取餐時間 − 最短預約 ≤ 現在＋10 分」者；隱藏「儘快」；團購不判斷 jumbo。'); add('spec','G4｜金額限制','只算該團員自己的品項小計；團長不受限；額度跟著購物車擁有者。'); add('q','G5',QLIST.G5.t); if(S.sh&&S.sh.noName) add('spec','N1',QLIST.N1.t); if(S.sheet==='edit'&&isLocked()&&!S.pickupPast) add('tmp','鎖定時修改團購資訊','鎖定時仍可打開「修改團購資訊」，欄位與儲存、取消團購皆為 disabled，解除鎖定後才能修改（HungYu 要求）；上方鎖定說明文案與 radio 已選取＋disabled 樣式為 Claude 提案，待確認（DS 缺此變體）。'); if(S.sheet==='edit'){ add('q','Q11',QLIST.Q11.t); add('q','Q15',QLIST.Q15.t); } }
   return n;
 }
 
@@ -1421,7 +1429,7 @@ const A = {
     const fresh=seedCarts(); S.carts={lead:{...fresh.lead,items:[]}}; if(S.sh.noName) S.carts.lead.name=f.lname.trim(); S.noName=false;
     S.role='leader'; S.status='open'; S.sheet=null; S.dialog='share'; go('store');
   },
-  openEdit(el){ if(isLocked() && !el.dataset.focus) return; openForm('edit',el.dataset.focus); },
+  openEdit(el){ openForm('edit',el.dataset.focus); }, /* 鎖定時仍可打開，欄位唯讀（HungYu 要求） */
   openEditPickupPast(){ S.dialog=null; openForm('edit'); /* 開完整修改團購資訊視窗，取餐欄位顯示「取餐時間已過，請重新選擇」；其他資訊也可一併修改（HungYu 決定） */ },
   openEditFromDlg(){ S.dialog=null; openForm('edit','pickup'); },
   saveGeneral(){ if(S.menuChanged && S.sh.pickupTouched){ S.dialog='menuChanged'; return; } commitGeneral(false); },
