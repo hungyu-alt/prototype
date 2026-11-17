@@ -84,7 +84,7 @@ button{font-family:inherit;color:inherit}
   --inverse-surface:#333333; --inverse-on-surface:#F7F7F7;
   --divider:#E9E9E9; --outline:#C2C2C2; --outline-variant:#E0E0E0; --outline-variant-bright:#EDEDED;
   --disabled:#E0E0E0; --on_disabled:#999999;
-  --error:#AB3832; --on_error:#FFFFFF;
+  --error:#AB3832; --on_error:#FFFFFF; --error-container:#FFF4F4; --on_error-container:#AB3832; /* 送單倒數最後 5 分鐘／倒數結束（DS error container） */
   --warning:#B58125; --warning-container:#FFE8C0; --on_warning-container:#563804;
   --success:#65B741; --success-container:#F0F8EC;
   --link:#1792DE;
@@ -204,6 +204,10 @@ button{font-family:inherit;color:inherit}
 .notice svg{flex:none;margin-top:0}
 .notice .n-body{flex:1;font-size:14px;line-height:20px}
 .notice .n-title{font-weight:700}
+.notice.err{background:var(--error-container);color:var(--on_error-container)} /* 送單倒數：最後 5 分鐘、倒數結束（提案紀錄⑩，HungYu 採用） */
+.cd-num{font-variant-numeric:tabular-nums;font-weight:700} /* 倒數數字用等寬數字，跳秒時不左右晃動 */
+.cd-strip{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:var(--warning-container);color:var(--on_warning-container);font-size:14px;line-height:20px;width:100%;box-sizing:border-box}
+.cd-strip.err{background:var(--error-container);color:var(--on_error-container)}
 .notice.lock{background:var(--surface-lower);color:var(--on_surface)}
 .notice .n-act{flex:none;align-self:center;display:flex;align-items:center;gap:4px;margin-left:4px} /* 團長鎖定提示：說明與「解除鎖定」並排，說明固定寬度約兩行 */
 
@@ -496,6 +500,7 @@ const I = {
   chevU:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>',
   share:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 13v7h14v-7"/></svg>',
   group:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3 3 0 010 6M18 14c2 .8 3 3 3 6"/></svg>',
+  clock:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 3h6"/></svg>', /* 截止／送單倒數提示統一用鬧鐘（HungYu 要求） */
   alert:'<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 5a1.2 1.2 0 011.2 1.2v4.6a1.2 1.2 0 01-2.4 0V8.2A1.2 1.2 0 0112 7zm0 10.4a1.3 1.3 0 110-2.6 1.3 1.3 0 010 2.6z"/></svg>',
   cash:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M 1.8 10 C 1.8 5.471 5.471 1.8 10 1.8 C 14.529 1.8 18.2 5.471 18.2 10 C 18.2 14.529 14.529 18.2 10 18.2 C 5.471 18.2 1.8 14.529 1.8 10 Z M 10 0 C 4.477 0 0 4.477 0 10 C 0 15.523 4.477 20 10 20 C 15.523 20 20 15.523 20 10 C 20 4.477 15.523 0 10 0 Z M 9.282 14.404 C 9.282 14.801 9.54 15 10.031 15 L 10.018 14.977 C 10.508 14.977 10.754 14.778 10.754 14.381 L 10.754 13.762 C 11.489 13.633 12.045 13.364 12.445 12.944 C 12.819 12.547 13 12.068 13 11.495 C 13 10.923 12.742 10.444 12.2 10.047 C 11.89 9.825 11.347 9.568 10.586 9.276 C 10.121 9.089 9.798 8.949 9.63 8.843 C 9.359 8.68 9.23 8.505 9.23 8.318 C 9.23 7.85 9.566 7.617 10.25 7.617 C 10.521 7.617 10.792 7.664 11.051 7.757 C 11.283 7.897 11.528 7.956 11.761 7.932 C 11.993 7.909 12.212 7.815 12.393 7.64 C 12.742 7.301 12.729 6.998 12.342 6.717 C 11.877 6.437 11.36 6.262 10.779 6.192 L 10.779 5.596 C 10.779 5.199 10.547 5 10.044 5 C 9.54 5 9.295 5.199 9.295 5.596 L 9.295 6.203 C 8.61 6.32 8.068 6.565 7.681 6.951 C 7.294 7.336 7.1 7.827 7.1 8.4 C 7.1 8.867 7.294 9.276 7.694 9.626 C 7.978 9.883 8.404 10.128 8.998 10.385 C 9.088 10.432 9.23 10.491 9.411 10.561 C 9.914 10.759 10.25 10.923 10.431 11.04 C 10.728 11.227 10.87 11.425 10.87 11.635 C 10.87 12.138 10.495 12.383 9.747 12.383 C 9.385 12.383 9.011 12.313 8.61 12.173 C 8.339 12.033 8.081 11.986 7.823 12.009 C 7.565 12.044 7.345 12.173 7.177 12.371 C 6.88 12.745 6.958 13.072 7.397 13.329 C 7.965 13.61 8.598 13.773 9.282 13.843 L 9.282 14.404 Z" fill="currentColor" fill-rule="evenodd" transform="matrix(1 0 0 1 2 2)"/></svg>',
   receipt:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M 17.07 0 C 17.57 0 17.97 0.4 17.97 0.9 L 17.97 19.09 C 17.97 19.38 17.83 19.66 17.58 19.83 C 17.33 20 17.03 20.04 16.75 19.94 L 14.35 19.05 L 11.95 19.84 C 11.77 19.9 11.57 19.9 11.38 19.84 L 8.96 19.04 L 6.39 19.85 C 6.21 19.91 6.01 19.9 5.82 19.85 L 3.58 19.06 L 1.19 19.94 C 1.09 19.98 0.98 20 0.88 20 L 0.9 19.99 C 0.72 19.99 0.54 19.93 0.39 19.83 C 0.15 19.66 0 19.39 0 19.09 L 0 0.9 C 0 0.4 0.4 0 0.9 0 L 17.07 0 Z M 1.8 17.8 L 3.28 17.25 C 3.48 17.18 3.69 17.18 3.89 17.25 L 6.15 18.04 L 8.71 17.24 C 8.8 17.21 8.89 17.2 8.98 17.2 L 8.98 17.19 C 9.08 17.19 9.17 17.21 9.26 17.24 L 11.67 18.04 L 14.08 17.24 C 14.27 17.18 14.48 17.18 14.67 17.24 L 16.15 17.79 L 16.15 1.8 L 1.8 1.8 L 1.8 17.8 Z M 13.03 13.32 C 13.53 13.32 13.93 13.72 13.93 14.22 C 13.93 14.72 13.53 15.12 13.03 15.12 L 4.89 15.12 C 4.39 15.12 3.99 14.72 3.99 14.22 C 3.99 13.72 4.39 13.32 4.89 13.32 L 13.03 13.32 Z M 9.021 3.24 C 9.41 3.24 9.59 3.41 9.59 3.75 L 9.59 4.26 C 10.04 4.32 10.44 4.47 10.8 4.71 C 11.1 4.95 11.11 5.21 10.84 5.5 C 10.7 5.65 10.53 5.73 10.35 5.75 C 10.17 5.77 9.98 5.72 9.8 5.6 C 9.6 5.52 9.39 5.48 9.18 5.48 C 8.65 5.481 8.39 5.68 8.39 6.08 C 8.39 6.24 8.49 6.39 8.7 6.53 C 8.83 6.62 9.081 6.74 9.44 6.9 C 10.03 7.15 10.45 7.37 10.69 7.56 C 11.11 7.9 11.31 8.31 11.31 8.8 C 11.31 9.29 11.17 9.7 10.88 10.04 C 10.57 10.4 10.14 10.63 9.57 10.74 L 9.57 11.27 C 9.57 11.61 9.38 11.78 9 11.78 L 9.01 11.8 C 8.63 11.8 8.43 11.63 8.43 11.29 L 8.43 10.81 C 7.9 10.75 7.41 10.61 6.97 10.37 C 6.63 10.15 6.57 9.87 6.8 9.55 C 6.93 9.38 7.1 9.27 7.3 9.24 C 7.5 9.22 7.7 9.26 7.91 9.38 C 8.22 9.5 8.51 9.56 8.79 9.56 C 9.37 9.56 9.66 9.35 9.66 8.92 C 9.66 8.74 9.55 8.57 9.32 8.41 C 9.18 8.31 8.92 8.17 8.53 8 C 8.39 7.94 8.28 7.89 8.21 7.85 C 7.75 7.63 7.42 7.42 7.2 7.2 C 6.89 6.9 6.74 6.55 6.74 6.15 C 6.74 5.66 6.89 5.24 7.19 4.91 C 7.49 4.58 7.91 4.37 8.44 4.27 L 8.44 3.75 C 8.44 3.41 8.631 3.24 9.021 3.24 Z" fill="currentColor" fill-rule="nonzero" transform="matrix(1 0 0 1 3 2)"/></svg>',
@@ -551,6 +556,7 @@ const S = {
   role:'leader',          // guest | member | blacklist | leader | gm | gv
   status:'open',          // open | closed | locked | lockedPast
   pickupInvalid:false,
+  cd:'count', cdLeft:452, /* 送單倒數（團長、已截止）：long 剩超過 10 分鐘只寫期限｜count 倒數中｜urgent 最後 5 分鐘｜over 倒數結束（提案紀錄⑩，HungYu 採用） */
   menuChanged:false,
   pendingLock:false,
   pendingRemoved:false,
@@ -733,6 +739,27 @@ function groupCard(){
   return h;
 }
 
+/* ===== 送單倒數（提案紀錄⑩，HungYu 採用）=====
+   送單期限＝取餐時間 − 2 × 最短預約時間（規格：團長購物車 › 6）；團購截止後、送出訂單前，只給團長看。
+   剩超過 10 分鐘只寫期限；最後 10 分鐘以「分:秒」倒數、每秒更新；最後 5 分鐘改 error 色；期限不在今天時加日期。
+   倒數結束：PM 尚未決定（可改取餐時間／直接整團取消），原型先做「可改取餐時間」版。工程請用伺服器時間計算。 */
+const cdOn = () => isLeader() && isPast() && !S.pickupPast;
+const cdMMSS = s => String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+function cdDeadline(){ const g=S.group, m=g.time-2*MIN_PREP; return (S.cd==='long' && g.date!==0) ? `${dateStr(g.date)} ${t2s(m)}` : t2s(m); } /* 倒數中的期限一定在 10 分鐘內，原型示意為當天 */
+function cdLine(){ return S.cd==='long' ? `請在 ${cdDeadline()} 前送出訂單。` : `請在 ${cdDeadline()} 前送出訂單，<span style="white-space:nowrap">剩 <b class="cd-num" data-cd>${cdMMSS(S.cdLeft)}</b></span>`; }
+function cdStrip(){ /* 步驟二：送出訂單正上方另加一條 */
+  if(!cdOn()) return '';
+  if(S.cd==='over') return `<div class="cd-strip err">${I.clock}<span style="flex:1;min-width:0"><b style="font-weight:700">已超過送單時間（${cdDeadline()}）</b><br>請修改取餐時間後再送出訂單</span></div>`;
+  return `<div class="cd-strip${S.cd==='urgent'?' err':''}">${I.clock}<span style="flex:1;min-width:0;font-weight:500">請在 ${cdDeadline()} 前送出訂單</span>${S.cd==='long'?'':`<span class="cd-num" style="flex:none">剩 <span data-cd>${cdMMSS(S.cdLeft)}</span></span>`}</div>`;
+}
+setInterval(()=>{ /* 每秒更新倒數；到 5 分鐘改 error 色、到 0 進入倒數結束 */
+  if(!cdOn() || !(S.cd==='count'||S.cd==='urgent') || !['store','cart','step2'].includes(S.screen)) return;
+  S.cdLeft=Math.max(0,S.cdLeft-1);
+  if(S.cdLeft===0){ S.cd='over'; render(); return; }
+  if(S.cd==='count' && S.cdLeft<=300){ S.cd='urgent'; render(); return; }
+  document.querySelectorAll('#phone [data-cd]').forEach(e=>e.textContent=cdMMSS(S.cdLeft));
+},1000);
+
 function statusNotice(where){
   const leader=isLeader();
   if(where==='step2') return ''; /* 步驟二只會在截止後進入，不再顯示截止／鎖定提示（鎖定已移除，規格 V1.2） */
@@ -744,8 +771,10 @@ function statusNotice(where){
   if(isPast()){
     /* 團長：方向改為催送單（HungYu 決定），店家頁提示右側放「前往付款」小按鈕；購物車底部已有前往付款，不重複放；內文 HungYu 決定 */
     const canPay = Object.values(S.carts).some(c=>itemCount(c)>0) && !S.pickupPast;
-    return `<div class="notice">${I.alert}<div class="n-body"><div class="n-title">團購已截止（${deadlineText()}）</div>
-      ${leader?'請前往付款並送出訂單。':'目前無法修改品項，若需調整請與團長聯繫。'}</div>${leader&&where==='store'?`<div class="n-act"><button class="btn btn-s btn-outline" data-act="goStep2" ${canPay?'':'disabled'}>前往付款</button></div>`:''}</div>`;
+    /* 團長：截止提示第二行改成送單期限＋倒數（提案紀錄⑩，HungYu 採用：只放一條提示）；icon 團長、團員都用鬧鐘（HungYu 要求） */
+    if(leader && S.cd==='over') return `<div class="notice err">${I.clock}<div class="n-body"><div class="n-title">已超過送單時間（${cdDeadline()}）</div>請修改取餐時間後再送出訂單</div><div class="n-act"><button class="btn btn-s btn-outline" data-act="openEdit" data-focus="pickup">修改取餐時間</button></div></div>`; /* 倒數結束（待 PM：若選「可改取餐時間」）：店家頁、購物車步驟一都在提示裡放「修改取餐時間」 */
+    return `<div class="notice${leader&&S.cd==='urgent'?' err':''}">${I.clock}<div class="n-body"><div class="n-title">團購已截止（${deadlineText()}）</div>
+      ${leader?cdLine():'目前無法修改品項，若需調整請與團長聯繫。'}</div>${leader&&where==='store'?`<div class="n-act"><button class="btn btn-s btn-outline" data-act="goStep2" ${canPay?'':'disabled'}>前往付款</button></div>`:''}</div>`;
   }
   return '';
 }
@@ -798,8 +827,8 @@ function renderCart(){
       <h2 class="sec-title" style="margin-top:20px">留言給店家</h2><textarea class="textarea" placeholder="請輸入特殊需求（請勿輸入#字）"></textarea></div>`;
     const pay = total+Math.round(total*0.1);
     const n = memberList().reduce((a,c)=>a+itemCount(c),0);
-    /* 取餐時間已過：前往付款停用，需先到「修改團購資訊」重選取餐時間（HungYu 提出，Claude 提案，待確認） */
-    h += `</div><div class="bottom-bar"><button class="cart-btn" data-act="goStep2" ${n&&!S.pickupPast?'':'disabled'}><span class="cnt">${n}</span><span>${isPast()?'前往付款':'截止團購並前往付款'}</span><span>${money(pay,true)}</span></button></div>`;
+    /* 取餐時間已過：前往付款停用，需先到「修改團購資訊」重選取餐時間（HungYu 提出，Claude 提案，待確認）；送單倒數結束時也停用（提案紀錄⑩，待 HungYu 確認：停用或保留可點） */
+    h += `</div><div class="bottom-bar"><button class="cart-btn" data-act="goStep2" ${n&&!S.pickupPast&&!(cdOn()&&S.cd==='over')?'':'disabled'}><span class="cnt">${n}</span><span>${isPast()?'前往付款':'截止團購並前往付款'}</span><span>${money(pay,true)}</span></button></div>`;
     return h;
   }
   h += `</div>`;
@@ -909,7 +938,7 @@ function renderStep2(){
     <div class="nav-row" data-act="noop"><div class="nr-top"><span class="nr-l">${I.receipt}<span class="nr-t">發票資料</span></span><span class="nr-l" style="gap:8px">${I.chevRds}</span></div></div></div>
   <div class="sec"><div class="s2-h">留言給店家</div><div style="margin-top:16px;font-size:14px;line-height:20px;font-weight:500">蛋餅兩份要分開裝</div></div>
   </div><div class="bottom-bar" style="display:flex;flex-direction:column;gap:16px"><div style="display:flex;justify-content:space-between;align-items:center;width:100%"><span style="font-size:16px;line-height:24px;font-weight:500">可獲得點數</span><span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600">30點${I.chevRds}</span></div>
-  <button class="btn btn-l btn-primary btn-block" data-act="submitOrder">送出訂單 ${money(total+fee,true)}</button></div>`;
+  <div style="display:flex;flex-direction:column;gap:8px;width:100%">${cdStrip()}<button class="btn btn-l btn-primary btn-block" data-act="submitOrder" ${cdOn()&&S.cd==='over'?'disabled':''}>送出訂單 ${money(total+fee,true)}</button>${cdOn()&&S.cd==='over'?'<button class="btn btn-l btn-outline btn-block" data-act="openEdit" data-focus="pickup">修改取餐時間</button>':''}</div></div>`; /* 送單倒數放在送出訂單正上方（提案紀錄⑩，HungYu 採用）；倒數結束：送出停用＋「修改取餐時間」（待 PM） */
   return h;
 }
 
@@ -1246,6 +1275,7 @@ const QLIST = {
 };
 function notesFor(){
   const n=[]; const add=(k,ref,t)=>n.push({k,ref,t});
+  if(cdOn() && ['store','cart','step2'].includes(S.screen)) add('tmp','送單倒數（團長）','提案紀錄⑩，HungYu 採用：送單期限＝取餐時間 − 2 × 最短預約時間（規格：團長購物車 › 6）。店家頁、購物車步驟一沿用截止提示、只改第二行；步驟二在送出訂單上方另加一條。剩超過 10 分鐘只寫期限，最後 10 分鐘以分:秒倒數，最後 5 分鐘改 error 色；期限不在今天時加日期。倒數結束的處理待 PM（可改取餐時間／直接整團取消），原型先做「可改取餐時間」版；購物車步驟一的前往付款停用或保留可點待 HungYu 確認。可用左側「送單倒數」切換狀態。');
   const sc=S.screen, role=S.role;
   if(sc==='store'){
     if(!isGroup()){
@@ -1305,6 +1335,7 @@ function renderControls(){
   let h=`<h2>揪團原型 v1</h2><p class="sub">G-2 規格 V1.1｜手機版 375px｜切換身份與狀態，逐條核對右側規格</p>`;
   h+=`<div class="ctl"><div class="ctl-label">身份</div><div class="chips">${ROLES.map(([v,l])=>chip('setRole',v,S.role,l)).join('')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">團購狀態</div><div class="chips">${STATUSES.map(([v,l])=>chip('setStatus',v,S.status,l)).join('')}</div></div>`;
+  h+=`<div class="ctl"><div class="ctl-label">送單倒數（團長、已截止）</div><div class="chips">${[['long','剩超過 10 分鐘'],['count','倒數中'],['urgent','最後 5 分鐘'],['over','倒數結束']].map(([v,l])=>`<button class="chip" data-act="setCd" data-v="${v}" aria-pressed="${isLeader()&&isPast()&&S.cd===v}">${l}</button>`).join('')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">每人金額上限</div><div class="chips">${LIMITS.map(([v,l])=>chip('setLimit',v,S.group.limit,l)).join('')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">畫面</div><div class="chips">${chip('setScreen','store',S.screen,'店家頁')}${isGroup()?chip('setScreen','cart',S.screen,isLeader()?'團長購物車':'團員購物車'):''}${isLeader()?chip('setScreen','step2',S.screen,'步驟二')+chip('setScreen','record',S.screen,'訂購紀錄'):''}${chip('setScreen','cartlist',S.screen,'購物車列表')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">開團</div><button class="ui-btn" data-act="createNoName">開團設定（已登入、會員沒有姓名）</button></div>`;
@@ -1423,7 +1454,7 @@ function openForm(kind,focus){
 function commitGeneral(){
   const f=S.sh.form;
   Object.assign(S.group,{name:f.name.trim(),type:f.type,date:f.date,time:f.time,limit:f.limitOn?Number(f.limitVal):0});
-  if(S.sh.pickupTouched){ S.pickupInvalid=false; S.pickupPast=false; }
+  if(S.sh.pickupTouched){ S.pickupInvalid=false; S.pickupPast=false; if(S.cd==='over'){ S.cd='long'; S.cdLeft=452; } } /* 倒數結束後改成較晚的取餐時間：倒數重新計算（剩超過 10 分鐘先只寫期限） */
   S.dialog=null; S.sh.pickupTouched=false; S.sheet=null; /* 儲存成功：關閉視窗並更新畫面（HungYu 確定） */
   toast('已儲存團購設定');
 }
@@ -1438,7 +1469,7 @@ function commitEdit(){
   const f=S.sh.form;
   Object.assign(S.group,{name:f.name.trim(),type:f.type,date:f.date,time:f.time,limit:f.limitOn?Number(f.limitVal):0,dDate:f.dDate,dTime:f.dTime});
   if(S.sh.deadlineTouched){ if(S.status==='closed') S.status='open'; if(S.status==='lockedPast') S.status='locked'; }
-  if(S.sh.pickupTouched){ S.pickupInvalid=false; S.pickupPast=false; }
+  if(S.sh.pickupTouched){ S.pickupInvalid=false; S.pickupPast=false; if(S.cd==='over'){ S.cd='long'; S.cdLeft=452; } }
   S.sheet=null; S.dialog=null;
   toast('已更新團購資訊');
 }
@@ -1447,12 +1478,13 @@ const A = {
   noop(){}, stop(){},
   q(el){ const id=el.dataset.q; const n=document.getElementById('note-'+id); if(n){ n.scrollIntoView({block:'center',behavior:'smooth'}); n.classList.remove('flash'); void n.offsetWidth; n.classList.add('flash'); } return 'norender'; },
   setRole(el){ S.role=el.dataset.v; S.dialog=null; S.sheet=null; if(S.screen==='cartlist'){} else if(!isGroup()||(S.screen!=='store'&&!(S.screen==='cart'))) go('store'); if(S.screen==='step2'&&!isLeader()) go('store'); },
-  setStatus(el){ S.status=el.dataset.v; },
+  setStatus(el){ S.status=el.dataset.v; if(S.status==='closed'){ S.cd='count'; S.cdLeft=452; } },
+  setCd(el){ const v=el.dataset.v; if(!isPast()) S.status='closed'; if(S.role!=='leader') S.role='leader'; S.pickupPast=false; S.cd=v; S.cdLeft={long:452,count:452,urgent:165,over:0}[v]; if(!['store','cart','step2'].includes(S.screen)) go('store'); },
   setLimit(el){ S.group.limit=Number(el.dataset.v); },
   setScreen(el){ if(el.dataset.v==='record'){ A.snapOrder(); S.recOpen=false; } go(el.dataset.v); S.dialog=null; S.sheet=null; if(el.dataset.v==='step2' && !isPast()) S.status='closed'; /* 步驟二只能在截止後進入（規格 V1.2） */ },
   toggleAnnot(){ S.annot=!S.annot; },
   toggleMenuChanged(){ S.menuChanged=!S.menuChanged; },
-  reset(){ S.pendingRemoved=false; S.noName=false; S.pickupPast=false; S.carts=seedCarts(); S.group=defaultGroup(); S.status='open'; S.pickupInvalid=false; S.pendingLock=false; S.normalCart=[]; S.dialog=null; S.sheet=null; S.collapsed={}; go('store'); },
+  reset(){ S.pendingRemoved=false; S.noName=false; S.pickupPast=false; S.carts=seedCarts(); S.group=defaultGroup(); S.status='open'; S.cd='count'; S.cdLeft=452; S.pickupInvalid=false; S.pendingLock=false; S.normalCart=[]; S.dialog=null; S.sheet=null; S.collapsed={}; go('store'); },
   startGroup(){
     if(S.role==='guest'){ toast('（原型）前往會員登入／註冊頁，完成後回到店家頁'); return; }
     if(S.role==='blacklist'){ S.dialog='blacklist'; return; }
@@ -1502,7 +1534,7 @@ const A = {
   doExit(){ S.dialog=null; S.role='member'; go('store'); toast('已退出團購'); },
   goCart(){ if(guardSync()) return; go('cart'); },
   goStore(){ go('store'); },
-  goStep2(){ /* 尚未截止時按「截止團購並前往付款」＝提早截止團購後進入付款（規格） */ if(!isPast()){ S.status='closed'; go('step2'); toast('已截止團購，團員無法再修改品項'); } else { go('step2'); } },
+  goStep2(){ /* 尚未截止時按「截止團購並前往付款」＝提早截止團購後進入付款（規格） */ if(!isPast()){ S.status='closed'; S.cd='long'; S.group.dDate=0; S.group.dTime=NOW; /* 截止時間同步改為當下（規格：團長購物車 › 4），團員看到的是實際截止時間 */ go('step2'); toast('已截止團購，團員無法再修改品項'); } else { go('step2'); } },
   snapOrder(){ const l=memberList().filter(c=>c.items.length); const t=l.reduce((a,c)=>a+subtotal(c),0); S.doneTotal=t+Math.round(t*0.1); S.doneCarts=l.map(c=>({id:c.id,name:c.id===meId()?c.name+'（團長）':c.name,lead:c.id===meId(),items:c.items.map(x=>({...x}))})); S.paid=S.paid||{}; },
   submitOrder(){ if(S.pickupPast){ S.dialog='pickupPastSubmit'; return; } /* 在步驟二、送出時取餐時間已過：跳 Dialog 引導重選取餐時間（HungYu 決定；文案 Claude 提案待確認） */ const l=memberList().filter(c=>c.items.length); const t=l.reduce((a,c)=>a+subtotal(c),0); S.doneTotal=t+Math.round(t*0.1); S.doneCarts=l.map(c=>({id:c.id,name:c.id===meId()?c.name+'（團長）':c.name,lead:c.id===meId(),items:c.items.map(x=>({...x}))})); S.paid={}; S.dialog=null; go('done'); }, /* 送出訂單後直接進「訂單已送出」；「訂單確認中」頁不做了（HungYu 決定，2026/11/13） */
   togglePaid(el){ const id=el.dataset.id; S.paid[id]=!S.paid[id]; },
