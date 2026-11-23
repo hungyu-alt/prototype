@@ -583,7 +583,7 @@ function defaultGroup(){
 /* ================= State ================= */
 const S = {
   storeOpen:true, /* 店家是否營業中：影響「訂單已送出」頁的說明文字 */
-  accMode:'cur', /* 修改團購資訊的區塊切換方式（比較用）：cur 現行／A 標題留在原位／B 可同時展開 */
+  accMode:'B', /* 修改團購資訊的區塊：可同時展開（HungYu 選定 B，11/23）。A／cur 的程式碼保留但不再提供切換 */
   reply:'wait', /* 店家回覆（訂單已送出後）：wait 確認中／ok 已接單／no 無法接單 */
   store:{type:'自取',asap:true,date:0,time:null,dine:'預約訂餐'}, // 店家頁一般身份的取餐方式（沿用現行 B-5）
   role:'leader',          // guest | member | blacklist | leader | gm | gv
@@ -1365,7 +1365,6 @@ function renderControls(){
   h+=`<div class="ctl"><div class="ctl-label">送單期限（團長、已截止）</div><div class="chips">${[['long','未超過送單時間'],['over','已超過送單時間']].map(([v,l])=>`<button class="chip" data-act="setCd" data-v="${v}" aria-pressed="${isLeader()&&isPast()&&S.cd===v}">${l}</button>`).join('')}</div></div>`;
   if(S.screen==='done') h+=`<div class="ctl"><div class="ctl-label">店家營業狀態（訂單已送出）</div><div class="chips">${chip('setStoreOpen','1',S.storeOpen?'1':'0','營業中')}${chip('setStoreOpen','0',S.storeOpen?'1':'0','未營業')}</div></div>`;
   if(S.screen==='done') h+=`<div class="ctl"><div class="ctl-label">店家回覆（訂單已送出後）</div><div class="chips">${chip('setReply','wait',S.reply,'確認中')}${chip('setReply','ok',S.reply,'已接單')}${chip('setReply','no',S.reply,'無法接單')}</div></div>`;
-  if(S.sheet==='edit') h+=`<div class="ctl"><div class="ctl-label">修改團購資訊：切換區塊的方式（比較用）</div><div class="chips">${chip('setAccMode','cur',S.accMode,'現行')}${chip('setAccMode','A',S.accMode,'A 標題留在原位')}${chip('setAccMode','B',S.accMode,'B 可同時展開')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">每人金額上限</div><div class="chips">${LIMITS.map(([v,l])=>chip('setLimit',v,S.group.limit,l)).join('')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">畫面</div><div class="chips">${chip('setScreen','store',S.screen,'店家頁')}${isGroup()?chip('setScreen','cart',S.screen,isLeader()?'團長購物車':'團員購物車'):''}${isLeader()?chip('setScreen','step2',S.screen,'步驟二')+chip('setScreen','record',S.screen,'訂購紀錄'):''}${chip('setScreen','cartlist',S.screen,'購物車列表')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">開團</div><button class="ui-btn" data-act="createNoName">開團設定（已登入、會員沒有姓名）</button></div>`;
@@ -1508,18 +1507,24 @@ function openForm(kind,focus){
   if(focus==='pickup'){ S.sh.view='pickup'; if(kind==='edit') S.sh.open='general'; S.sh.tmp={type:form.type,dine:'預約訂餐',date:form.date,time:(form.type==='宅配'||pickupTimes(form.date).includes(form.time))?form.time:pickupTimes(form.date)[0]}; }
   if(focus==='deadline'){ S.sh.view='deadline'; if(kind==='edit') S.sh.open='deadline'; S.sh.tmp={dDate:form.dDate,dTime:form.dTime}; dlAutoPick(); }
 }
+function dlDirtyNow(){ const f=S.sh.form,g=S.group; return f.dDate!==g.dDate || f.dTime!==g.dTime; }
+function genDirtyNow(){ const f=S.sh.form,g=S.group; return f.name.trim()!==g.name || f.date!==g.date || f.time!==g.time || f.type!==g.type || (f.limitOn?Number(f.limitVal):0)!==g.limit; }
+/* 儲存其中一個區塊時：另一個區塊沒有未儲存的修改 → 關閉視窗（同原本）；有 → 視窗不關，剛存的區塊收合、另一塊維持展開（HungYu 決定 11/23） */
+function keepOpenAfterSave(saved,other){ const o=S.sh.openB||{}; o[saved]=false; o[other]=true; S.sh.openB=o; S.sh.open=other; }
 function commitGeneral(){
   const f=S.sh.form;
   Object.assign(S.group,{name:f.name.trim(),type:f.type,date:f.date,time:f.time,limit:f.limitOn?Number(f.limitVal):0});
   if(S.sh.pickupTouched){ S.pickupInvalid=false; S.pickupPast=false; if(S.cd==='over'){ S.cd='long'; } } /* 超過送單時間後改成較晚的取餐時間：送單期限重新計算 */
-  S.dialog=null; S.sh.pickupTouched=false; S.sheet=null; /* 儲存成功：關閉視窗並更新畫面（HungYu 確定） */
+  S.dialog=null; S.sh.pickupTouched=false;
+  if(dlDirtyNow()) keepOpenAfterSave('general','deadline'); else S.sheet=null; /* 儲存成功：關閉視窗並更新畫面（HungYu 確定）；截止時間還有未儲存的修改時不關（HungYu 決定 11/23） */
   toast('已儲存團購設定');
 }
 function commitDeadline(){
   const f=S.sh.form;
   Object.assign(S.group,{dDate:f.dDate,dTime:f.dTime});
   if(S.status==='closed') S.status='open'; if(S.status==='lockedPast') S.status='locked';
-  S.sh.deadlineTouched=false; S.sheet=null;
+  S.sh.deadlineTouched=false;
+  if(genDirtyNow()) keepOpenAfterSave('deadline','general'); else S.sheet=null; /* 團購設定還有未儲存的修改時不關（HungYu 決定 11/23） */
   toast('已儲存截止時間');
 }
 function commitEdit(){
