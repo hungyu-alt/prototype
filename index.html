@@ -413,6 +413,7 @@ button{font-family:inherit;color:inherit}
 .sheet-h{display:flex;align-items:center;gap:8px;padding:12px 12px 12px 16px;min-height:44px}
 .sheet-h .sh-title{flex:1;text-align:center;font-size:16px;line-height:20px;font-weight:500}
 .sheet-pk{height:76%}
+.sheet.sheet-fixed{height:88%}.sheet-fixed .sheet-b{flex:1;min-height:0}.sheet-fixed .sheet-b>*{flex-shrink:0}
 .sheet-pk .sheet-b{flex:1;min-height:0}
 .sheet-pk .time-list{max-height:none;overflow:visible}
 .sheet-pk .sheet-b>*{flex-shrink:0}
@@ -582,6 +583,7 @@ function defaultGroup(){
 /* ================= State ================= */
 const S = {
   storeOpen:true, /* 店家是否營業中：影響「訂單已送出」頁的說明文字 */
+  accMode:'cur', /* 修改團購資訊的區塊切換方式（比較用）：cur 現行／A 標題留在原位／B 可同時展開 */
   reply:'wait', /* 店家回覆（訂單已送出後）：wait 確認中／ok 已接單／no 無法接單 */
   store:{type:'自取',asap:true,date:0,time:null,dine:'預約訂餐'}, // 店家頁一般身份的取餐方式（沿用現行 B-5）
   role:'leader',          // guest | member | blacklist | leader | gm | gv
@@ -1179,7 +1181,7 @@ function storePickupSheet(){
 
 function groupSheet(){
   const f=S.sh.form, view=S.sh.view||'main', edit=S.sheet==='edit';
-  let h=`<div class="mask" data-act="closeSheet"></div><div class="sheet${view==='pickup'?' sheet-pk':''}" role="dialog" aria-modal="true">`;
+  let h=`<div class="mask" data-act="closeSheet"></div><div class="sheet${view==='pickup'?' sheet-pk':''}${(view==='main'&&S.sheet==='edit'&&S.accMode==='A')?' sheet-fixed':''}" role="dialog" aria-modal="true">`; /* A：修改團購資訊視窗高度固定，切換區塊時上緣不動（比較用，Claude 提案） */
   if(view==='pickup'){
     const times=pickupTimes(S.sh.tmp.date);
     h+=`<div class="sheet-h"><button class="icon-btn" data-act="sheetBack" aria-label="返回">${I.back}</button><span class="sh-title">取餐方式與時間</span><span style="width:24px"></span></div>
@@ -1213,9 +1215,10 @@ function groupSheet(){
     const dlDirty = f.dDate!==g.dDate || f.dTime!==g.dTime;
     const genOk = valid && !pickupBad && !pickupPastBad && !deadlineBad, dlOk = !deadlineBad && !deadlinePast;
     const openSec = S.sh.open || ((deadlinePast && !pickupBad && !pickupPastBad) ? 'deadline' : (pickupBad||pickupPastBad) ? 'general' : 'none'); /* 預設兩個區塊都收合（HungYu 決定 11/18）；有錯誤時才預設展開出問題的區塊（Claude 提案） */
+    const isOpen = k => S.accMode==='B' ? !!(S.sh.openB ? S.sh.openB[k] : openSec===k) : openSec===k;
     h+=`<div class="sheet-b" data-keep="sb" style="gap:16px">
       ${ro?`<div class="notice lock">${I.lock}<div class="n-body">團購已鎖定，解除鎖定後才能修改團購資訊。</div></div>`:''}
-      ${openSec==='general'?`<div class="edit-sec"><div class="es-h" data-act="openSec" data-v="none" style="cursor:pointer"><div><div class="es-t">團購設定${QB('Q15')}</div><div class="es-d">團名、取餐方式、每人上限</div></div>${I.chevU}</div>
+      ${isOpen('general')?`<div class="edit-sec" data-sec="general"><div class="es-h" data-act="openSec" data-v="none" data-sec="general" style="cursor:pointer"><div><div class="es-t">團購設定${QB('Q15')}</div><div class="es-d">團名、取餐方式、每人上限</div></div>${I.chevU}</div>
       <div class="field"><label class="field-label" for="gname">團名</label><input class="input${f.name.trim()?'':' err'}" id="gname" maxlength="20" value="${esc(f.name)}"${D}>
         ${f.name.trim()?'':'<span class="field-err">請輸入團名</span>'}</div>
       <div class="field"><div class="field-label">取餐方式與時間${QB('G2')}</div><button class="pick-row${(pickupBad||pickupPastBad)?' warn':''}" ${ro?'':'data-act="sheetView" data-v="pickup"'}${D}><span>${pkText(f,true)}</span>${I.chevR}</button>
@@ -1226,12 +1229,12 @@ function groupSheet(){
         ${f.limitOn?`<input class="input${limitOk?'':' err'}" id="glimit" inputmode="numeric" placeholder="輸入金額，例如 300" value="${esc(f.limitVal)}"${D}>
         ${limitOk?'<span class="field-help">只計算團員自己的品項小計，團長不受限制</span>':'<span class="field-err">請輸入大於 0 的整數</span>'}`:''}</div>
       <button class="btn btn-l btn-primary btn-block" data-act="saveGeneral" ${(!ro&&genDirty&&genOk)?'':'disabled'}>儲存團購設定</button></div>`
-      :`<div class="edit-sec col" data-act="openSec" data-v="general"><div><div class="es-t">團購設定</div><div class="es-sum${(pickupBad||pickupPastBad||!genOk)?' err':''}">${(pickupBad||pickupPastBad)?(pickupPastBad?'取餐時間已過，請重新選擇':'取餐方式與時間需要重新選擇'):`${esc(f.name)}・${pkText(f,true)}・${f.limitOn&&f.limitVal?'每人上限 $'+esc(f.limitVal):'不限制'}`}</div></div>${I.chevD}</div>`}
-      ${openSec==='deadline'?`<div class="edit-sec"><div class="es-h" data-act="openSec" data-v="none" style="cursor:pointer"><div><div class="es-t">截止日期與時間</div><div class="es-d">影響團員能否繼續加入與點餐，請確認後再修改</div></div>${I.chevU}</div>
+      :`<div class="edit-sec col" data-sec="general" data-act="openSec" data-v="general"><div><div class="es-t">團購設定</div><div class="es-sum${(pickupBad||pickupPastBad||!genOk)?' err':''}">${(pickupBad||pickupPastBad)?(pickupPastBad?'取餐時間已過，請重新選擇':'取餐方式與時間需要重新選擇'):`${esc(f.name)}・${pkText(f,true)}・${f.limitOn&&f.limitVal?'每人上限 $'+esc(f.limitVal):'不限制'}`}</div></div>${I.chevD}</div>`}
+      ${isOpen('deadline')?`<div class="edit-sec" data-sec="deadline"><div class="es-h" data-act="openSec" data-v="none" data-sec="deadline" style="cursor:pointer"><div><div class="es-t">截止日期與時間</div><div class="es-d">影響團員能否繼續加入與點餐，請確認後再修改</div></div>${I.chevU}</div>
       <div class="field"><div class="field-label">截止日期與時間</div><button class="pick-row${(deadlinePast||deadlineBad)?' warn':''}" ${ro?'':'data-act="sheetView" data-v="deadline"'}${D}><span>${dateStr(f.dDate)} ${t2s(f.dTime)}</span>${I.chevR}</button>
         ${deadlinePast?`<span class="field-err">已過截止時間，點選後重新設定${QB('Q11')}</span>`:deadlineBad?`<span class="field-err">截止時間最晚可選 ${t2s(f.time-2*MIN_PREP-10)}，請重新選擇${QB('G6',1)}</span>`:'<span class="field-help">截止後團員無法再修改品項</span>'}</div>
       <button class="btn btn-l btn-primary btn-block" data-act="saveDeadline" ${(!ro&&dlDirty&&dlOk)?'':'disabled'}>儲存截止時間</button></div>`
-      :`<div class="edit-sec col" data-act="openSec" data-v="deadline"><div><div class="es-t">截止日期與時間</div><div class="es-sum${(deadlinePast||deadlineBad)?' err':''}">${deadlinePast?'已過截止時間，點選後重新設定':deadlineBad?'截止時間最晚可選 '+t2s(f.time-2*MIN_PREP-10):`${dateStr(f.dDate)} ${t2s(f.dTime)}`}</div></div>${I.chevD}</div>`}
+      :`<div class="edit-sec col" data-sec="deadline" data-act="openSec" data-v="deadline"><div><div class="es-t">截止日期與時間</div><div class="es-sum${(deadlinePast||deadlineBad)?' err':''}">${deadlinePast?'已過截止時間，點選後重新設定':deadlineBad?'截止時間最晚可選 '+t2s(f.time-2*MIN_PREP-10):`${dateStr(f.dDate)} ${t2s(f.dTime)}`}</div></div>${I.chevD}</div>`}
       <button class="btn btn-l btn-text-underline" data-act="askCancelGroup" ${isLocked()?'disabled':''} style="align-self:center">取消團購</button>${isLocked()?'<span class="t-desc" style="align-self:center;color:var(--primary)">團購正在結帳中，需先解除鎖定才能取消</span>':''}
     </div></div>`;
     return h;
@@ -1362,6 +1365,7 @@ function renderControls(){
   h+=`<div class="ctl"><div class="ctl-label">送單期限（團長、已截止）</div><div class="chips">${[['long','未超過送單時間'],['over','已超過送單時間']].map(([v,l])=>`<button class="chip" data-act="setCd" data-v="${v}" aria-pressed="${isLeader()&&isPast()&&S.cd===v}">${l}</button>`).join('')}</div></div>`;
   if(S.screen==='done') h+=`<div class="ctl"><div class="ctl-label">店家營業狀態（訂單已送出）</div><div class="chips">${chip('setStoreOpen','1',S.storeOpen?'1':'0','營業中')}${chip('setStoreOpen','0',S.storeOpen?'1':'0','未營業')}</div></div>`;
   if(S.screen==='done') h+=`<div class="ctl"><div class="ctl-label">店家回覆（訂單已送出後）</div><div class="chips">${chip('setReply','wait',S.reply,'確認中')}${chip('setReply','ok',S.reply,'已接單')}${chip('setReply','no',S.reply,'無法接單')}</div></div>`;
+  if(S.sheet==='edit') h+=`<div class="ctl"><div class="ctl-label">修改團購資訊：切換區塊的方式（比較用）</div><div class="chips">${chip('setAccMode','cur',S.accMode,'現行')}${chip('setAccMode','A',S.accMode,'A 標題留在原位')}${chip('setAccMode','B',S.accMode,'B 可同時展開')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">每人金額上限</div><div class="chips">${LIMITS.map(([v,l])=>chip('setLimit',v,S.group.limit,l)).join('')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">畫面</div><div class="chips">${chip('setScreen','store',S.screen,'店家頁')}${isGroup()?chip('setScreen','cart',S.screen,isLeader()?'團長購物車':'團員購物車'):''}${isLeader()?chip('setScreen','step2',S.screen,'步驟二')+chip('setScreen','record',S.screen,'訂購紀錄'):''}${chip('setScreen','cartlist',S.screen,'購物車列表')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">開團</div><button class="ui-btn" data-act="createNoName">開團設定（已登入、會員沒有姓名）</button></div>`;
@@ -1456,14 +1460,31 @@ function render(){
   S._keepScroll=true;
   document.getElementById('ctlPanel').innerHTML = renderControls();
   document.getElementById('notePanel').innerHTML = renderNotes();
-  if(S._accAnim){ /* 手風琴過場（Claude 提案，回應 HungYu 11/18「展開時視覺失去方向」；HungYu 覺得 280ms 太快，改 400ms、曲線改為前後都緩）：視窗高度從舊高度平滑過渡到新高度、展開的內容淡入、展開的區塊捲到視窗內可見 */
+  if(S._accAnim && S._accAnim.mode==='A'){ /* A（比較用，Claude 提案 11/23）：視窗高度固定；被點的區塊先停在手指點的位置，上方收合的區塊用 400ms 縮回，被點的標題跟著平順地往上移，只朝一個方向動；展開內容淡入，最後把展開的內容捲進可視範圍 */
+    const a=S._accAnim; S._accAnim=null; const sh=phone.querySelector('.sheet'); const sb=sh&&sh.querySelector('.sheet-b');
+    if(sb && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+      const t=sb.querySelector(`.edit-sec[data-sec="${a.tap}"]`); const prev=a.prev&&a.prev!==a.tap?sb.querySelector(`.edit-sec[data-sec="${a.prev}"]`):null;
+      const openEl=sb.querySelector('.edit-sec:not(.col)'); if(openEl) openEl.classList.add('es-in');
+      const ease='cubic-bezier(.4,0,.2,1)';
+      const settle=()=>{ if(openEl){ const r=openEl.getBoundingClientRect(), br=sb.getBoundingClientRect(); if(r.bottom>br.bottom) sb.scrollTo({top:sb.scrollTop+Math.min(r.bottom-br.bottom+8, r.top-br.top-4),behavior:'smooth'}); } };
+      if(t && prev && (prev.compareDocumentPosition(t)&Node.DOCUMENT_POSITION_FOLLOWING)){
+        const h0=prev.offsetHeight; prev.style.height=h0+'px'; prev.style.overflow='hidden';
+        sb.scrollTop=a.scroll; let d=a.y0-t.getBoundingClientRect().top;
+        if(d>0){ prev.style.height=(h0+d)+'px'; sb.scrollTop=a.scroll; const d2=a.y0-t.getBoundingClientRect().top; if(Math.abs(d2)>0.5) prev.style.height=(prev.offsetHeight+d2)+'px'; }
+        void prev.offsetHeight; prev.style.transition=`height 400ms ${ease}`; prev.style.height=h0+'px';
+        const done=()=>{ prev.style.transition=''; prev.style.height=''; prev.style.overflow=''; prev.removeEventListener('transitionend',done); settle(); };
+        prev.addEventListener('transitionend',done); setTimeout(()=>{ if(prev.style.height) done(); },520);
+      } else { setTimeout(settle,420); }
+    }
+  }
+  if(S._accAnim){ /* 手風琴過場（Claude 提案，回應 HungYu 11/18「展開時視覺失去方向」；HungYu 覺得 280ms 太快，改 400ms、曲線改為前後都緩）：視窗高度從舊高度平滑過渡到新高度、展開的內容淡入、展開的區塊捲到視窗內可見。B（比較用）也走這段 */
     const a=S._accAnim; S._accAnim=null; const sh=phone.querySelector('.sheet');
     if(sh && a.h && !matchMedia('(prefers-reduced-motion: reduce)').matches){
       const nh=sh.offsetHeight; sh.style.overflow='hidden'; sh.style.height=a.h+'px'; void sh.offsetHeight;
       sh.style.transition='height 400ms cubic-bezier(.4,0,.2,1)'; sh.style.height=nh+'px';
       const done=()=>{ sh.style.transition=''; sh.style.height=''; sh.style.overflow=''; sh.removeEventListener('transitionend',done); };
       sh.addEventListener('transitionend',done); setTimeout(done,520);
-      const open=sh.querySelector('.edit-sec:not(.col)'); if(open){ open.classList.add('es-in'); const sb=sh.querySelector('.sheet-b'); if(sb){ const top=open.offsetTop-sb.offsetTop-4; if(top<sb.scrollTop) sb.scrollTop=Math.max(0,top); } }
+      const open=(a.v&&sh.querySelector(`.edit-sec[data-sec="${a.v}"]:not(.col)`))||(a.mode==='B'?null:sh.querySelector('.edit-sec:not(.col)')); if(open){ open.classList.add('es-in'); if(a.mode==='B'){ const sb2=sh.querySelector('.sheet-b'); setTimeout(()=>{ if(!sb2) return; const r=open.getBoundingClientRect(), br=sb2.getBoundingClientRect(); if(r.bottom>br.bottom) sb2.scrollTo({top:sb2.scrollTop+Math.min(r.bottom-br.bottom+8, r.top-br.top-4),behavior:'smooth'}); },120); } /* B：展開後把新內容平順捲進可視範圍 */ const sb=sh.querySelector('.sheet-b'); if(sb){ const top=open.offsetTop-sb.offsetTop-4; if(top<sb.scrollTop) sb.scrollTop=Math.max(0,top); } }
     }
   }
   const f=S._focus; if(f){ const el=document.getElementById(f); if(el){el.focus(); const v=el.value; el.setSelectionRange?.(v.length,v.length);} S._focus=null; }
@@ -1531,7 +1552,12 @@ const A = {
   },
   closeDialog(){ S.dialog=null; },
   closeSheet(){ S.sheet=null; },
-  openSec(el){ const sh=document.querySelector('#phone .sheet'); S._accAnim={h:sh?sh.offsetHeight:0,v:el.dataset.v}; S.sh.open=el.dataset.v; }, /* 手風琴切換：未儲存的修改保留（Claude 提案）；過場動畫見 render() 結尾 */
+  openSec(el){ const sh=document.querySelector('#phone .sheet'); const sb=sh&&sh.querySelector('.sheet-b'); const v=el.dataset.v, tap=el.dataset.sec||v;
+    const cur=sh?[...sh.querySelectorAll('.edit-sec:not(.col)')].map(e=>e.dataset.sec):[];
+    if(S.accMode==='B'){ const o=S.sh.openB||{general:cur.includes('general'),deadline:cur.includes('deadline')}; if(v==='none') o[tap]=false; else o[v]=true; S.sh.openB=o; S._accAnim={mode:'B',h:sh?sh.offsetHeight:0,v:v==='none'?'':v}; return; }
+    if(S.accMode==='A'){ const t=el.closest('.edit-sec'); S._accAnim={mode:'A',tap,v,y0:t?t.getBoundingClientRect().top:0,scroll:sb?sb.scrollTop:0,prev:cur[0]||''}; S.sh.open=v; return; }
+    S._accAnim={h:sh?sh.offsetHeight:0,v}; S.sh.open=v; }, /* 手風琴切換：未儲存的修改保留（Claude 提案）；過場動畫見 render() 結尾。A／B 為 11/23 比較用（HungYu 要看） */
+  setAccMode(el){ S.accMode=el.dataset.v; if(S.sh){ S.sh.open='none'; S.sh.openB=null; } },
   sheetView(el){ const v=el.dataset.v, f=S.sh.form; S.sh.view=v; if(S.sheet==='edit') S.sh.open = v==='deadline'?'deadline':'general'; S.sh.tmp = v==='pickup'?{type:f.type,date:f.date,time:f.time,dine:'預約訂餐'}:{dDate:f.dDate,dTime:f.dTime}; if(v==='deadline') dlAutoPick(); if(v==='pickup'&&f.type!=='宅配'&&!pickupTimes(f.date).includes(f.time)) S.sh.tmp.time=pickupTimes(f.date)[0]; if(v==='deadline'&&!deadlineValid(f)){ const t={...f}; clampDeadline(t); S.sh.tmp={dDate:t.dDate,dTime:t.dTime}; } S._timeScroll=true; S._chipScroll=v; },
   sheetBack(){ S.sh.view='main'; },
   tmpDate(el){ const i=Number(el.dataset.i), t=S.sh.tmp, grp=S.sheet!=='storePickup'; t.date=i; if(t.type!=='宅配'){ t.time=(grp?pickupTimes(i):storeTimes(i))[0]; if(!grp) t.asap=(i===0&&t.type==='自取'); } S._timeScroll=true; },
