@@ -1366,7 +1366,7 @@ function renderControls(){
   if(S.screen==='done') h+=`<div class="ctl"><div class="ctl-label">店家營業狀態（訂單已送出）</div><div class="chips">${chip('setStoreOpen','1',S.storeOpen?'1':'0','營業中')}${chip('setStoreOpen','0',S.storeOpen?'1':'0','未營業')}</div></div>`;
   if(S.screen==='done') h+=`<div class="ctl"><div class="ctl-label">店家回覆（訂單已送出後）</div><div class="chips">${chip('setReply','wait',S.reply,'確認中')}${chip('setReply','ok',S.reply,'已接單')}${chip('setReply','no',S.reply,'無法接單')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">每人金額上限</div><div class="chips">${LIMITS.map(([v,l])=>chip('setLimit',v,S.group.limit,l)).join('')}</div></div>`;
-  h+=`<div class="ctl"><div class="ctl-label">畫面</div><div class="chips">${chip('setScreen','store',S.screen,'店家頁')}${isGroup()?chip('setScreen','cart',S.screen,isLeader()?'團長購物車':'團員購物車'):''}${isLeader()?chip('setScreen','step2',S.screen,'步驟二')+chip('setScreen','record',S.screen,'訂購紀錄'):''}${chip('setScreen','cartlist',S.screen,'購物車列表')}</div></div>`;
+  h+=`<div class="ctl"><div class="ctl-label">畫面</div><div class="chips">${chip('setScreen','store',S.screen,'店家頁')}${isGroup()?chip('setScreen','cart',S.screen,isLeader()?'團長購物車':'團員購物車'):''}${isLeader()?chip('setScreen','step2',S.screen,'步驟二')+chip('setScreen','record',S.screen,'訂購紀錄'):''}${chip('setScreen','cartlist',S.screen,'購物車列表')}</div>${isLeader()?`<div class="chips" style="margin-top:6px">${[['wait','訂單確認中'],['ok','店家已接單'],['no','店家無法接單']].map(([v,l])=>`<button class="chip${S.screen==='done'&&S.reply===v?' on':''}" data-act="goDone" data-v="${v}">${l}</button>`).join('')}</div>`:''}</div>`; /* 直接跳到送出訂單後的三種畫面（HungYu 要在 prototype 看，11/23） */
   h+=`<div class="ctl"><div class="ctl-label">開團</div><button class="ui-btn" data-act="createNoName">開團設定（已登入、會員沒有姓名）</button></div>`;
   h+=`<div class="ctl"><div class="ctl-label">從團購連結進入</div>
     <button class="ui-btn" data-act="linkValid" data-v="guest">連結有效 → 身份設定（未登入）</button>
@@ -1543,6 +1543,7 @@ const A = {
   setStatus(el){ S.status=el.dataset.v; if(S.status==='closed'){ S.cd='long'; } },
   setStoreOpen(el){ S.storeOpen=el.dataset.v==='1'; },
   setReply(el){ S.reply=el.dataset.v; },
+  goDone(el){ if(!isPast()) S.status='closed'; const l=memberList().filter(c=>c.items.length); const t=l.reduce((a,c)=>a+subtotal(c),0); S.doneTotal=t+Math.round(t*0.1); S.doneCarts=l.map(c=>({id:c.id,name:c.id===meId()?c.name+'（團長）':c.name,lead:c.id===meId(),items:c.items.map(x=>({...x}))})); S.paid={}; S.dialog=null; S.sheet=null; S.reply=el.dataset.v; go('done'); },
   reGroup(){ toast('（示意）回到開團設定並帶入同一間店家'); },
   setCd(el){ const v=el.dataset.v; if(!isPast()) S.status='closed'; if(S.role!=='leader') S.role='leader'; S.pickupPast=false; S.cd=v; if(!['store','cart','step2'].includes(S.screen)) go('store'); },
   setLimit(el){ S.group.limit=Number(el.dataset.v); },
