@@ -583,6 +583,7 @@ function defaultGroup(){
 /* ================= State ================= */
 const S = {
   storeOpen:true, /* 店家是否營業中：影響「訂單已送出」頁的說明文字 */
+  shareDev:'mobile', /* 模擬裝置：mobile 手機且支援系統分享／desktop 桌機或不支援（HungYu 11/23） */
   accMode:'B', /* 修改團購資訊的區塊：可同時展開（HungYu 選定 B，11/23）。A／cur 的程式碼保留但不再提供切換 */
   reply:'wait', /* 店家回覆（訂單已送出後）：wait 確認中／ok 已接單／no 無法接單 */
   store:{type:'自取',asap:true,date:0,time:null,dine:'預約訂餐'}, // 店家頁一般身份的取餐方式（沿用現行 B-5）
@@ -883,11 +884,9 @@ function groupCartBlock(c){
   for(const x of c.items){
     const m=MENU[x.mid];
     h += `<div class="citem"><div class="photo sm ${m.ph}" aria-hidden="true"><img src="${m.img}" alt="" loading="lazy"></div><div class="ci-body">
-      ${h2row /* 團長看團員品項：提案紀錄⑨ H-2（HungYu 選定）— 價格與名稱同一行（名稱 flex:1、金額最小寬 45px 靠右、間距 16px）；團長購物車不放「加點」（HungYu 決定 11/18：和改團員數量的「＋」容易混淆） */
-        ? `<div class="ci-name" style="align-items:flex-start;gap:16px"><span style="flex:1;min-width:0;word-break:break-all">${m.name}</span><span class="ci-price" style="flex:none;min-width:45px;text-align:right;font-weight:400;color:var(--on_surface-variant)">${money(m.price,true)}</span></div>`
-        : `<div class="ci-name"><span>${m.name}</span>${(!mine && !leader)?`<span class="ci-x">×${x.qty}</span>`:''}</div>`}
+      ${/* 團長看團員品項：排法和「我自己」相同，金額在選項敘述下方（HungYu 要求 11/24，取代提案紀錄⑨ H-2）；團長購物車不放「加點」（HungYu 決定 11/18） */''}<div class="ci-name"><span>${m.name}</span>${(!mine && !leader)?`<span class="ci-x">×${x.qty}</span>`:''}</div>
       <div class="ci-opt">${esc(x.opts)}</div>
-      <div class="ci-row">${h2row?`<span style="flex:1"></span>`:`<div class="ci-price">${money(m.price,true)}</div>`}`;
+      <div class="ci-row"><div class="ci-price">${money(m.price,true)}</div>`;
     if(mine || leader){
       const dis = !editable;
       h += `<div class="ctr">${x.qty>1
@@ -1075,7 +1074,7 @@ function dialogHTML(){
       <div class="d-actions"><button class="btn btn-l btn-primary" data-act="backToMyGroup">回到原本的團購</button></div>`,false);
     case 'info': return wrap(`<button class="icon-btn d-close" data-act="closeDialog" aria-label="關閉">${I.close}</button>
       <div class="d-text"><div class="t-h4">團購資訊</div></div>${infoList(true)}
-      ${(isLocked()||isPast())?`<span class="t-desc" style="text-align:center;color:var(--primary)">${isLocked()?'團購正在結帳中':'團購已截止'}，目前無法退出。若需調整請與團長聯繫。</span>`:`<div class="d-actions" style="align-items:center;gap:16px"><button class="btn btn-l btn-primary btn-block" data-act="openShare"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v7h14v-7"/></svg>分享團購</button><button class="btn btn-text-underline" data-act="askExit">退出團購</button></div>`} <!-- 已截止：不顯示退出團購，只留紅字說明原因（HungYu 決定：停用的按鈕也按不了；規格 3.1 為 disable，需同步 PM） -->`,true);
+      ${(isLocked()||isPast())?`<span class="t-desc" style="text-align:center;color:var(--primary)">${isLocked()?'團購正在結帳中':'團購已截止'}，目前無法退出。若需調整請與團長聯繫。</span>`:`<div class="d-actions" style="align-items:center;gap:16px"><button class="btn btn-l btn-primary btn-block" data-act="memberShare"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v7h14v-7"/></svg>分享團購</button><button class="btn btn-text-underline" data-act="askExit">退出團購</button></div>`} <!-- 已截止：不顯示退出團購，只留紅字說明原因（HungYu 決定：停用的按鈕也按不了；規格 3.1 為 disable，需同步 PM） -->`,true);
     case 'exit': return simple('確定要退出團購？','你的購物車會一併刪除。之後想再加入，需重新開啟團購連結。',`<button class="btn btn-l btn-primary" data-act="doExit">退出團購</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">取消</button>`);
     case 'cancelGroup': return simple('確定要取消這個團購？','全團的購物車都會刪除，團購連結也會失效。',`<button class="btn btn-l btn-primary" data-act="doCancelGroup">取消團購</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">返回</button>`);
     case 'remove': { const c=S.carts[S.dlg.id]; return simple(`將${esc(c.name)}移出團購？`,`${esc(c.name)}的購物車會一併刪除，對方需重新開啟連結才能再加入。`,`<button class="btn btn-l btn-primary" data-act="doRemove">移出團購</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">取消</button>`); }
@@ -1365,6 +1364,7 @@ function renderControls(){
   h+=`<div class="ctl"><div class="ctl-label">送單期限（團長、已截止）</div><div class="chips">${[['long','未超過送單時間'],['over','已超過送單時間']].map(([v,l])=>`<button class="chip" data-act="setCd" data-v="${v}" aria-pressed="${isLeader()&&isPast()&&S.cd===v}">${l}</button>`).join('')}</div></div>`;
   if(S.screen==='done') h+=`<div class="ctl"><div class="ctl-label">店家營業狀態（訂單已送出）</div><div class="chips">${chip('setStoreOpen','1',S.storeOpen?'1':'0','營業中')}${chip('setStoreOpen','0',S.storeOpen?'1':'0','未營業')}</div></div>`;
   if(S.screen==='done') h+=`<div class="ctl"><div class="ctl-label">店家回覆（訂單已送出後）</div><div class="chips">${chip('setReply','wait',S.reply,'確認中')}${chip('setReply','ok',S.reply,'已接單')}${chip('setReply','no',S.reply,'無法接單')}</div></div>`;
+  if(isGroup() && !isLeader()) h+=`<div class="ctl"><div class="ctl-label">模擬裝置（團員點「分享團購」）</div><div class="chips">${chip('setShareDev','mobile',S.shareDev,'手機（支援系統分享）')}${chip('setShareDev','desktop',S.shareDev,'桌機或不支援')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">每人金額上限</div><div class="chips">${LIMITS.map(([v,l])=>chip('setLimit',v,S.group.limit,l)).join('')}</div></div>`;
   h+=`<div class="ctl"><div class="ctl-label">畫面</div><div class="chips">${chip('setScreen','store',S.screen,'店家頁')}${isGroup()?chip('setScreen','cart',S.screen,isLeader()?'團長購物車':'團員購物車'):''}${isLeader()?chip('setScreen','step2',S.screen,'步驟二')+chip('setScreen','record',S.screen,'訂購紀錄'):''}${chip('setScreen','cartlist',S.screen,'購物車列表')}</div>${isLeader()?`<div class="chips" style="margin-top:6px">${[['wait','訂單確認中'],['ok','店家已接單'],['no','店家無法接單']].map(([v,l])=>`<button class="chip${S.screen==='done'&&S.reply===v?' on':''}" data-act="goDone" data-v="${v}">${l}</button>`).join('')}</div>`:''}</div>`; /* 直接跳到送出訂單後的三種畫面（HungYu 要在 prototype 看，11/23） */
   h+=`<div class="ctl"><div class="ctl-label">開團</div><button class="ui-btn" data-act="createNoName">開團設定（已登入、會員沒有姓名）</button></div>`;
@@ -1431,6 +1431,14 @@ const SCREEN_NAMES={store:'店家頁',cart:'購物車步驟一',step2:'購物車
 function ensureMe(){
   if(isGroup() && !S.carts[meId()]){ const f=seedCarts(); S.carts[meId()]=f[meId()]; }
 }
+function nativeShareHTML(){ if(!S.nativeShare) return ''; const g=S.group;
+  const app=(l)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:64px"><span style="width:56px;height:56px;border-radius:14px;background:#E5E5EA;display:block"></span><span style="font-size:11px;color:#3C3C43">${l}</span></div>`;
+  return `<div class="mask" data-act="closeNative" style="z-index:40"></div><div role="dialog" aria-label="系統分享選單（示意）" style="position:absolute;left:8px;right:8px;bottom:8px;z-index:41;background:#F2F2F7;border-radius:14px;padding:8px 0 12px;font-family:-apple-system,'Noto Sans TC',sans-serif">
+    <div style="width:36px;height:5px;border-radius:3px;background:#C7C7CC;margin:0 auto 10px"></div>
+    <div style="display:flex;gap:12px;align-items:center;padding:0 16px 12px;border-bottom:1px solid #D1D1D6"><span style="width:44px;height:44px;border-radius:8px;background:#FFC245;flex:none"></span><div style="min-width:0;flex:1"><div style="font-size:14px;font-weight:600;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(g.name)}｜${esc(S.store?.name||'天橋旁Mikan早午餐')}</div><div style="font-size:12px;color:#8E8E93">iding.tw</div></div><button data-act="closeNative" aria-label="關閉" style="border:0;background:#E5E5EA;border-radius:50%;width:28px;height:28px;color:#8E8E93">✕</button></div>
+    <div style="display:flex;justify-content:space-around;padding:14px 8px">${['訊息','郵件','社群 App','更多'].map(app).join('')}</div>
+    <div style="margin:0 16px;background:#FFF;border-radius:10px"><button data-act="closeNative" style="width:100%;border:0;background:none;padding:12px 16px;text-align:left;font-size:15px;color:#000">拷貝</button></div>
+    <div style="text-align:center;font-size:11px;color:#8E8E93;margin-top:10px">系統原生分享選單（示意，實際樣式由手機系統決定）</div></div>`; }
 function render(){
   ensureMe();
   const phone=document.getElementById('phone');
@@ -1439,7 +1447,7 @@ function render(){
   const roleName = ROLES.find(r=>r[0]===S.role)[1];
   document.getElementById('screenName').textContent = `${SCREEN_NAMES[S.screen]}｜${roleName}`;
   let h = S.screen==='cart'?renderCart():S.screen==='step2'?renderStep2():S.screen==='done'?renderDone():S.screen==='pending'?renderPending():S.screen==='record'?renderRecord():S.screen==='orders'?renderOrders():S.screen==='cartlist'?renderCartList():renderStore();
-  h += sheetHTML() + dialogHTML();
+  h += sheetHTML() + dialogHTML() + nativeShareHTML();
   if(S.toast) h += `<div class="msg${S.toast.type==='error'?' error':''}" role="status" aria-live="polite">${S.toast.text}</div>`;
   phone.innerHTML = h;
   phone.classList.toggle('hide-annot',!S.annot);
@@ -1557,7 +1565,7 @@ const A = {
     if(S.role==='blacklist'){ S.dialog='blacklist'; return; }
     openForm('create');
   },
-  closeDialog(){ S.dialog=null; },
+  closeDialog(){ if(S.dialog==='share'&&S._shareFromInfo){ S._shareFromInfo=false; S.dialog='info'; return; } S.dialog=null; }, /* 從團購資訊打開的分享視窗，關閉後回到團購資訊（Claude 提案） */
   closeSheet(){ S.sheet=null; },
   openSec(el){ const sh=document.querySelector('#phone .sheet'); const sb=sh&&sh.querySelector('.sheet-b'); const v=el.dataset.v, tap=el.dataset.sec||v;
     const cur=sh?[...sh.querySelectorAll('.edit-sec:not(.col)')].map(e=>e.dataset.sec):[];
@@ -1600,6 +1608,9 @@ const A = {
   askCancelGroup(){ S.dialog='cancelGroup'; },
   doCancelGroup(){ S.sheet=null; S.dialog=null; S.pickupInvalid=false; S.role='member'; S.carts=seedCarts(); S.group=defaultGroup(); S.status='open'; go('store'); toast('已取消團購'); },
   openShare(){ S.dialog='share'; },
+  memberShare(){ if(S.shareDev==='mobile') S.nativeShare=true; else { S.dialog='share'; S._shareFromInfo=true; } }, /* 團員在團購資訊點「分享團購」：手機且支援系統分享 → 直接叫出原生分享選單；桌機或不支援 → 打開「分享團購連結」視窗（HungYu 決定 11/23） */
+  closeNative(){ S.nativeShare=false; },
+  setShareDev(el){ S.shareDev=el.dataset.v; S.nativeShare=false; },
   copyLink(){ S.dialog=null; toast('已複製團購連結'); },
   openInfo(){ if(guardSync()) return; S.dialog='info'; },
   askExit(){ S.dialog='exit'; },
