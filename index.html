@@ -1,3 +1,4 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -403,7 +404,7 @@ button{font-family:inherit;color:inherit}
 .dialog .d-actions{display:flex;flex-direction:column;gap:8px}
 .dialog .d-close{position:absolute;top:16px;right:16px}
 .info-list{display:flex;flex-direction:column;gap:0;text-align:left}
-.info-list .il{display:grid;grid-template-columns:96px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--divider);font-size:14px;line-height:20px}
+.info-list .il{display:grid;grid-template-columns:96px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--divider);font-size:16px;line-height:24px} /* 團購資訊六列改 16px（Body/Large；HungYu 11/26） */
 .info-list .il:last-child{border-bottom:0}
 .info-list .il dt{color:var(--on_surface-variant)}
 .info-list .il dd{margin:0;word-break:break-all}
@@ -419,6 +420,8 @@ button{font-family:inherit;color:inherit}
 .sheet-pk .sheet-b>*{flex-shrink:0}
 .sheet-b{overflow-y:auto;padding:4px 16px 16px;display:flex;flex-direction:column;gap:20px}
 .sheet-f{border-top:1px solid var(--divider);padding:16px}
+.sheet.sheet-dlg{z-index:23} /* 加入團購／團購資訊改成底部滑出面板（同開團視窗；HungYu 11/26），疊在遮罩之上 */
+.sheet-dlg .sheet-f .d-actions{display:flex;flex-direction:column;gap:8px}
 .pick-row{display:flex;justify-content:space-between;align-items:center;min-height:48px;border:2px solid var(--outline-variant);border-radius:8px;padding:12px;cursor:pointer;font-size:16px;line-height:20px;background:var(--surface);width:100%;color:var(--on_surface);font-family:inherit;text-align:left}
 .pick-row.warn{border-color:var(--primary_pressed)}
 /* 鎖定時修改團購資訊唯讀：沿用 input.md disabled（無邊框、$disabled 底、$on_disabled 字）；radio 已選取＋disabled 在 DS 缺變體（radio.md 落差 1），暫以 $disabled 實心＋$surface 圓點示意，待確認 */
@@ -1032,6 +1035,7 @@ function dialogHTML(){
   const d=S.dialog; if(!d) return '';
   const g=S.group;
   const wrap = (inner,closable) => `<div class="mask mask-dlg" ${closable?'data-act="closeDialog"':''}></div><div class="dialog-wrap" ${closable?'data-act="closeDialog"':''}><div class="dialog" role="dialog" aria-modal="true" data-act="stop" data-keep="dlg">${inner}</div></div>`;
+  const sheetWrap = (title,body,foot,closable) => `<div class="mask mask-dlg" ${closable?'data-act="closeDialog"':''}></div><div class="sheet sheet-dlg" role="dialog" aria-modal="true" data-act="stop" data-keep="dlg"><div class="sheet-h"><span style="width:24px"></span><span class="sh-title">${title}</span>${closable?`<button class="icon-btn" data-act="closeDialog" aria-label="關閉">${I.close}</button>`:'<span style="width:24px"></span>'}</div><div class="sheet-b">${body}</div>${foot?`<div class="sheet-f">${foot}</div>`:''}</div>`; /* 底部滑出面板版（HungYu 11/26） */
   const simple = (title,body,primary,secondary) => wrap(`<div class="d-text"><div class="t-h4">${title}</div><div class="t-body-l">${body}</div></div>
     <div class="d-actions">${primary}${secondary||''}</div>`,true);
   const infoList = (withLeader) => `<dl class="info-list">
@@ -1055,13 +1059,11 @@ function dialogHTML(){
       const name = S.dlg.vname||'';
       const nn = loggedIn && S.dlg.noName, mname = S.dlg.mname||'';
       const ok = (loggedIn && (!nn || mname.trim().length>0)) || (!loggedIn && (who==='member' || name.trim().length>0));
-      return wrap(`<div class="d-text"><div class="t-h4">加入團購</div></div>
-        ${infoList(true)}
+      return sheetWrap('加入團購',`${infoList(true)}
         ${loggedIn?(nn?`<div style="display:flex;flex-direction:column;gap:12px"><p class="t-body-m" style="margin:0">你的會員資料還沒有姓名，請輸入在團購中要顯示的名字，方便團長辨認。</p>${nameField('mname',mname,S.dlg.mtouched,'填寫後將同步會員資料','你的名字'+QB('N1'))}</div>`:`<p class="t-body-m" style="margin:0">你將以「${esc(S.carts.mei.name)}」的名字加入團購，團長和團員會看到這個名字。</p>`):`<div><div class="t-label-m" style="margin-bottom:4px">選擇加入身份${QB('L2')}</div>
           <div class="radio-row" data-act="pickWho" data-v="member"><span class="radio${who==='member'?' on':''}"><i></i></span>會員（前往登入／註冊）</div>
           <div class="radio-row" data-act="pickWho" data-v="visitor"><span class="radio${who==='visitor'?' on':''}"><i></i></span>訪客</div>
-          ${who==='visitor'?`<div class="field" style="margin-top:4px"><label class="field-label" for="vname">訪客姓名</label><input class="input${S.dlg.vtouched&&!name.trim()?' err':''}" id="vname" maxlength="50" placeholder="請輸入你的名字" value="${esc(name)}">${S.dlg.vtouched&&!name.trim()?'<span class="field-err">請輸入你的名字</span>':'<span class="field-help">最多 50 字</span>'}</div>`:''}</div>`}
-        <div class="d-actions"><button class="btn btn-l btn-primary" data-act="joinGroup" ${ok?'':'disabled'}>${(!loggedIn&&who==='member')?'前往登入':'開始訂購'}</button>
+          ${who==='visitor'?`<div class="field" style="margin-top:4px"><label class="field-label" for="vname">訪客姓名</label><input class="input${S.dlg.vtouched&&!name.trim()?' err':''}" id="vname" maxlength="50" placeholder="請輸入你的名字" value="${esc(name)}">${S.dlg.vtouched&&!name.trim()?'<span class="field-err">請輸入你的名字</span>':'<span class="field-help">最多 50 字</span>'}</div>`:''}</div>`}`,`<div class="d-actions"><button class="btn btn-l btn-primary" data-act="joinGroup" ${ok?'':'disabled'}>${(!loggedIn&&who==='member')?'前往登入':'開始訂購'}</button>
         <button class="btn btn-l btn-outline" data-act="joinLater">稍後再說</button></div>`,false);
     }
     case 'linkClosed': return wrap(`<div class="d-text"><div class="t-h4">${S.dlg.locked?'團購正在結帳中':'團購已截止'}</div><div class="t-body-l">${S.dlg.locked?`「${esc(g.name)}」正在結帳中，已鎖定購物車無法再加入。`:`「${esc(g.name)}」已過截止時間，無法再加入。`}</div></div>
@@ -1072,9 +1074,7 @@ function dialogHTML(){
       <div class="d-actions"><button class="btn btn-l btn-primary" data-act="toStoreNormal">前往店家頁</button></div>`,false);
     case 'linkOther': return wrap(`<div class="d-text"><div class="t-h4">你已在這間店的其他團購中</div><div class="t-body-l">同一間店一次只能參加一個團購。想加入新的團購，請先退出${S.dlg.asLeader?'（取消）':''}原本的團購。</div></div>
       <div class="d-actions"><button class="btn btn-l btn-primary" data-act="backToMyGroup">回到原本的團購</button></div>`,false);
-    case 'info': return wrap(`<button class="icon-btn d-close" data-act="closeDialog" aria-label="關閉">${I.close}</button>
-      <div class="d-text"><div class="t-h4">團購資訊</div></div>${infoList(true)}
-      ${(isLocked()||isPast())?`<span class="t-desc" style="text-align:center;color:var(--primary)">${isLocked()?'團購正在結帳中':'團購已截止'}，目前無法退出。若需調整請與團長聯繫。</span>`:`<div class="d-actions" style="align-items:center;gap:16px"><button class="btn btn-l btn-primary btn-block" data-act="memberShare"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v7h14v-7"/></svg>分享團購</button><button class="btn btn-text-underline" data-act="askExit">退出團購</button></div>`} <!-- 已截止：不顯示退出團購，只留紅字說明原因（HungYu 決定：停用的按鈕也按不了；規格 3.1 為 disable，需同步 PM） -->`,true);
+    case 'info': return sheetWrap('團購資訊',`${infoList(true)}${(isLocked()||isPast())?`<span class="t-desc" style="text-align:center;color:var(--primary)">${isLocked()?'團購正在結帳中':'團購已截止'}，目前無法退出。若需調整請與團長聯繫。</span>`:''} <!-- 已截止：不顯示退出團購，只留紅字說明原因（HungYu 決定：停用的按鈕也按不了；規格 3.1 為 disable，需同步 PM） -->`,(isLocked()||isPast())?'':`<div class="d-actions" style="align-items:center;gap:16px"><button class="btn btn-l btn-primary btn-block" data-act="memberShare"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v7h14v-7"/></svg>分享團購</button><button class="btn btn-text-underline" data-act="askExit">退出團購</button></div>`,true);
     case 'exit': return simple('確定要退出團購？','你的購物車會一併刪除。之後想再加入，需重新開啟團購連結。',`<button class="btn btn-l btn-primary" data-act="doExit">退出團購</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">取消</button>`);
     case 'cancelGroup': return simple('確定要取消這個團購？','全團的購物車都會刪除，團購連結也會失效。',`<button class="btn btn-l btn-primary" data-act="doCancelGroup">取消團購</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">返回</button>`);
     case 'remove': { const c=S.carts[S.dlg.id]; return simple(`將${esc(c.name)}移出團購？`,`${esc(c.name)}的購物車會一併刪除，對方需重新開啟連結才能再加入。`,`<button class="btn btn-l btn-primary" data-act="doRemove">移出團購</button>`,`<button class="btn btn-l btn-outline" data-act="closeDialog">取消</button>`); }
@@ -1518,14 +1518,14 @@ function openForm(kind,focus){
 }
 function dlDirtyNow(){ const f=S.sh.form,g=S.group; return f.dDate!==g.dDate || f.dTime!==g.dTime; }
 function genDirtyNow(){ const f=S.sh.form,g=S.group; return f.name.trim()!==g.name || f.date!==g.date || f.time!==g.time || f.type!==g.type || (f.limitOn?Number(f.limitVal):0)!==g.limit; }
-/* 儲存其中一個區塊時：另一個區塊沒有未儲存的修改 → 關閉視窗（同原本）；有 → 視窗不關，剛存的區塊收合、另一塊維持展開（HungYu 決定 11/23） */
-function keepOpenAfterSave(saved,other){ const o=S.sh.openB||{}; o[saved]=false; o[other]=true; S.sh.openB=o; S.sh.open=other; }
+/* 儲存其中一個區塊後一律不關視窗、剛存的區塊也不自動收合（HungYu 要求 11/25）：維持展開並顯示新設定，背景店家頁同步更新；另一塊有未儲存的修改時維持展開（HungYu 決定 11/23），沒有則維持原狀 */
+function keepOpenAfterSave(saved,other,otherDirty){ const o=S.sh.openB?Object.assign({},S.sh.openB):{general:S.sh.open==='general',deadline:S.sh.open==='deadline'}; o[saved]=true; if(otherDirty) o[other]=true; S.sh.openB=o; S.sh.open=saved; }
 function commitGeneral(){
   const f=S.sh.form;
   Object.assign(S.group,{name:f.name.trim(),type:f.type,date:f.date,time:f.time,limit:f.limitOn?Number(f.limitVal):0});
   if(S.sh.pickupTouched){ S.pickupInvalid=false; S.pickupPast=false; if(S.cd==='over'){ S.cd='long'; } } /* 超過送單時間後改成較晚的取餐時間：送單期限重新計算 */
   S.dialog=null; S.sh.pickupTouched=false;
-  if(dlDirtyNow()) keepOpenAfterSave('general','deadline'); else S.sheet=null; /* 儲存成功：關閉視窗並更新畫面（HungYu 確定）；截止時間還有未儲存的修改時不關（HungYu 決定 11/23） */
+  keepOpenAfterSave('general','deadline',dlDirtyNow()); /* 儲存成功：留在視窗、toast、更新資訊（HungYu 要求 11/25） */
   toast('已儲存團購設定');
 }
 function commitDeadline(){
@@ -1533,7 +1533,7 @@ function commitDeadline(){
   Object.assign(S.group,{dDate:f.dDate,dTime:f.dTime});
   if(S.status==='closed') S.status='open'; if(S.status==='lockedPast') S.status='locked';
   S.sh.deadlineTouched=false;
-  if(genDirtyNow()) keepOpenAfterSave('deadline','general'); else S.sheet=null; /* 團購設定還有未儲存的修改時不關（HungYu 決定 11/23） */
+  keepOpenAfterSave('deadline','general',genDirtyNow()); /* 儲存成功：留在視窗（HungYu 要求 11/25） */
   toast('已儲存截止時間');
 }
 function commitEdit(){
@@ -1745,3 +1745,5 @@ render();
 </script>
 </body>
 </html>
+
+</body></html>
